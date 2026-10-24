@@ -1,0 +1,1087 @@
+/* ==============================================================================
+   SSC Google Forms Dark Mode Stylesheet
+   - Google Forms visual language (Header banner, discrete question cards, left accent bar)
+   - Deep rich Dark Mode palette with signature Google Forms purple (#a855f7)
+   - Minimum 48px touch targets, zero GPU bloat, responsive single-column layout
+   - Custom Certificate Template & JSON Question Import support
+   ============================================================================== */
+
+:root {
+  /* Dark Mode Default Theme (Google Forms Dark) */
+  --bg-app: #0d1117;
+  --bg-surface: #161b22;
+  --bg-card: #1c212c;
+  --bg-card-focused: #202734;
+  --bg-input: #0d1117;
+  --border: #30363d;
+  --border-focus: #a855f7;
+
+  /* Google Forms Signature Purple */
+  --primary: #a855f7;
+  --primary-hover: #9333ea;
+  --primary-active: #7e22ce;
+  --primary-subtle: rgba(168, 85, 247, 0.15);
+  --primary-glow: rgba(168, 85, 247, 0.25);
+
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --text-inverse: #ffffff;
+
+  --error: #f85149;
+  --error-bg: rgba(248, 81, 73, 0.12);
+  --success: #3fb950;
+  --success-bg: rgba(63, 185, 80, 0.12);
+  --warning: #d29922;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --font-stack: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: Georgia, "Times New Roman", Times, serif;
+
+  --min-touch: 48px;
+}
+
+.ssc-nav-logo { border-radius: 50%; flex-shrink: 0; object-fit: cover; }
+.ssc-brand { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+.ssc-brand img { border-radius: 50%; object-fit: cover; }
+.ssc-brand strong { display: block; font-size: 0.9rem; letter-spacing: 0.12em; color: #e7b84b; }
+.ssc-brand span { display: block; font-size: 0.95rem; margin-top: 3px; }
+.ssc-certificate-logo { display: block; margin: 0 auto 5px; border-radius: 50%; }
+.privacy-notice { font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; margin: 18px 0; }
+.deployment-notice { border: 1px solid var(--warning); color: var(--warning); padding: 14px; margin-bottom: 16px; border-radius: 10px; font-size: 0.85rem; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 3px solid #e7b84b; outline-offset: 3px; }
+@media (max-width: 420px) { .gf-nav-title { max-width: 110px !important; } .gf-nav-actions { gap: 4px !important; } .ssc-brand { gap: 12px; } }
+
+/* Light Mode Overrides (if toggled) */
+body.light-theme {
+  --bg-app: #f0ebf8;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-focused: #faf7fd;
+  --bg-input: #f8fafc;
+  --border: #dadce0;
+  --border-focus: #7c3aed;
+  --primary: #7c3aed;
+  --primary-hover: #6d28d9;
+  --primary-subtle: #f3e8ff;
+  --text-main: #202124;
+  --text-muted: #5f6368;
+  --text-inverse: #ffffff;
+}
+
+/* Base Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-family: var(--font-stack);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-main);
+  background-color: var(--bg-app);
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+}
+
+/* App Outer Shell */
+.app-shell {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 80px;
+}
+
+/* Google Forms Top Bar */
+.gf-navbar {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.gf-navbar-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gf-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gf-logo-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.gf-nav-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.gf-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Iconic Send / Share Button */
+.btn-send-link {
+  min-height: 36px;
+  padding: 6px 14px;
+  background: var(--primary);
+  color: var(--text-inverse);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.btn-send-link:hover, .btn-send-link:active {
+  background: var(--primary-hover);
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.icon-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+/* Google Forms Tabs Bar */
+.gf-nav-tabs {
+  display: flex;
+  justify-content: center;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+}
+
+.gf-tab-item {
+  min-height: 44px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.gf-tab-item.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.gf-badge {
+  background: var(--primary-subtle);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 12px;
+}
+
+/* Main Content Container */
+.main-wrapper {
+  padding: 16px 14px;
+}
+
+.view {
+  display: none;
+}
+.view.active {
+  display: block;
+}
+
+/* ==============================================================================
+   GOOGLE FORMS HEADER CARD (Top Header Accent Stripe)
+   ============================================================================== */
+.gf-header-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: 10px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 22px 20px 18px;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.gf-form-title {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+  margin-bottom: 8px;
+  outline: none;
+}
+.gf-form-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 16px;
+  outline: none;
+}
+.gf-required-notice {
+  font-size: 0.8rem;
+  color: var(--error);
+  font-weight: 500;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+/* ==============================================================================
+   GOOGLE FORMS QUESTION CARDS
+   ============================================================================== */
+.gf-question-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px 18px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.gf-question-card:focus-within,
+.gf-question-card.active-card {
+  border-color: var(--border-focus);
+  border-left: 5px solid var(--primary);
+  background: var(--bg-card-focused);
+}
+
+.gf-question-card.has-error {
+  border-color: var(--error);
+  border-left: 5px solid var(--error);
+  background: rgba(248, 81, 73, 0.04);
+}
+
+.gf-q-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.gf-q-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+.gf-required-star {
+  color: var(--error);
+  margin-left: 2px;
+}
+
+/* Inputs & Form Controls */
+.gf-input-underline {
+  width: 100%;
+  min-height: var(--min-touch);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 10px 4px;
+  outline: none;
+  transition: border-bottom-color 0.15s;
+}
+.gf-input-underline:focus {
+  border-bottom: 2px solid var(--primary);
+}
+
+.gf-input-card {
+  width: 100%;
+  min-height: var(--min-touch);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.gf-input-card:focus {
+  border-color: var(--primary);
+}
+
+.gf-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+/* Rating Scale (1 to 5 segmented bar) */
+.gf-rating-scale {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.gf-rating-cell {
+  min-height: 52px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: all 0.12s;
+}
+.gf-rating-cell:active {
+  transform: scale(0.97);
+}
+.gf-rating-cell.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+.gf-rating-sub {
+  font-size: 0.65rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+/* Radio & Checkbox Choice Rows */
+.gf-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gf-option-row {
+  min-height: var(--min-touch);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background 0.12s, border-color 0.12s;
+}
+.gf-option-row:hover {
+  border-color: var(--border-focus);
+}
+.gf-option-row.selected {
+  background: var(--primary-subtle);
+  border-color: var(--primary);
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.gf-radio-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+.gf-option-row.selected .gf-radio-circle {
+  border-color: var(--primary);
+}
+.gf-option-row.selected .gf-radio-circle::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.gf-checkbox-square {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gf-option-row.selected .gf-checkbox-square {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.gf-option-row.selected .gf-checkbox-square::after {
+  content: "✓";
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Inline Validation Errors */
+.gf-error-text {
+  display: none;
+  color: var(--error);
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 8px;
+  align-items: center;
+  gap: 4px;
+}
+.gf-question-card.has-error .gf-error-text {
+  display: flex;
+}
+
+/* Form Footer Actions */
+.gf-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 0 4px;
+}
+
+.btn {
+  min-height: var(--min-touch);
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-primary {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+.btn-primary:hover, .btn-primary:active {
+  background: var(--primary-hover);
+}
+.btn-secondary {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text-main);
+}
+.btn-secondary:hover {
+  background: var(--bg-card-focused);
+}
+.btn-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+.btn-link:hover {
+  color: var(--text-main);
+}
+.btn-sm {
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ==============================================================================
+   GOOGLE FORMS BUILDER (Admin Tab A) & JSON IMPORT/EXPORT
+   ============================================================================== */
+.gf-builder-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gf-card-builder {
+  border-left: 5px solid var(--border);
+}
+.gf-card-builder.active-card {
+  border-left-color: var(--primary);
+}
+
+.gf-builder-header-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gf-builder-q-row {
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 480px) {
+  .gf-builder-q-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gf-select {
+  min-height: var(--min-touch);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.gf-builder-option-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.gf-btn-del-option {
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gf-btn-del-option:hover {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.gf-btn-add-option {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gf-builder-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 16px;
+}
+
+.gf-switch-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.gf-toggle {
+  position: relative;
+  width: 38px;
+  height: 22px;
+}
+.gf-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.gf-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--border);
+  border-radius: 34px;
+  transition: 0.2s;
+}
+.gf-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+.gf-toggle input:checked + .gf-slider {
+  background-color: var(--primary);
+}
+.gf-toggle input:checked + .gf-slider:before {
+  transform: translateX(16px);
+}
+
+/* Floating Action Bar */
+.gf-floating-bar {
+  position: sticky;
+  bottom: 16px;
+  display: flex;
+  justify-content: center;
+  z-index: 30;
+  pointer-events: none;
+}
+.gf-floating-inner {
+  pointer-events: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ==============================================================================
+   CERTIFICATE TEMPLATE UPLOAD & CUSTOMIZATION
+   ============================================================================== */
+.cert-mode-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cert-mode-btn {
+  min-height: 44px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.cert-mode-btn.active {
+  background: var(--primary-subtle);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Upload Dropzone */
+.cert-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg-input);
+  transition: border-color 0.15s, background-color 0.15s;
+  margin-bottom: 16px;
+}
+.cert-dropzone:hover, .cert-dropzone.dragover {
+  border-color: var(--primary);
+  background: var(--primary-subtle);
+}
+.cert-dropzone-icon {
+  font-size: 2rem;
+  margin-bottom: 6px;
+}
+.cert-file-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card-focused);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+/* Range Sliders */
+.gf-slider-row {
+  margin-bottom: 14px;
+}
+.gf-slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.gf-range-input {
+  width: 100%;
+  accent-color: var(--primary);
+  cursor: pointer;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  outline: none;
+}
+
+/* Certificate Preview Container */
+.cert-preview-container {
+  width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+/* Default Vector Gold/Navy Frame */
+.certificate-frame {
+  width: 580px;
+  max-width: none;
+  flex-shrink: 0;
+  aspect-ratio: 1.414 / 1; /* A4 Landscape */
+  background: #ffffff;
+  color: #0f172a;
+  border: 10px solid #1e293b;
+  position: relative;
+  padding: 22px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Custom Uploaded Template Frame (Live Preview) */
+.certificate-custom-frame {
+  width: 100%;
+  max-width: 580px;
+  aspect-ratio: 1.414 / 1;
+  background-color: #ffffff;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Custom Text Overlay for Uploaded Template */
+.custom-cert-name-overlay {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: break-word;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.cert-inner-gold {
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid #d97706;
+  pointer-events: none;
+}
+
+.cert-corner-accent {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: #d97706;
+  border-style: solid;
+}
+.cert-corner-accent.tl { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+.cert-corner-accent.tr { top: 8px; right: 8px; border-width: 2px 2px 0 0; }
+.cert-corner-accent.bl { bottom: 8px; left: 8px; border-width: 0 0 2px 2px; }
+.cert-corner-accent.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+.cert-ribbon-text {
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.cert-main-title {
+  font-family: var(--font-serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+.cert-issuer-text {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cert-participant-name {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  border-bottom: 2px solid #cbd5e1;
+  padding: 2px 24px;
+  margin: 6px auto;
+  max-width: 90%;
+  word-break: break-word;
+}
+
+.cert-body-statement {
+  font-size: 0.72rem;
+  color: #334155;
+  line-height: 1.35;
+  max-width: 90%;
+  margin: 0 auto;
+}
+
+.cert-sig-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 10px;
+  margin-top: 6px;
+}
+.cert-signature-draw {
+  font-family: "Brush Script MT", cursive, var(--font-serif);
+  font-size: 1.15rem;
+  color: #1e3a8a;
+}
+.cert-sig-line {
+  border-top: 1px solid #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0f172a;
+  padding-top: 2px;
+  min-width: 130px;
+}
+
+/* ==============================================================================
+   MODALS & TOASTS
+   ============================================================================== */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 60;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-backdrop.open {
+  display: flex;
+}
+.gf-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+.gf-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.gf-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.gf-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.gf-link-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin: 12px 0 16px;
+}
+.gf-link-input {
+  background: none;
+  border: none;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  width: 100%;
+  outline: none;
+  font-family: monospace;
+}
+
+.gf-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #1f2937;
+  color: #f9fafb;
+  border: 1px solid #374151;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  opacity: 0;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s;
+  pointer-events: none;
+}
+.gf-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.app-footer {
+  text-align: center;
+  padding: 20px 14px 40px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.footer-link {
+  color: var(--text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #certificate-print-area, #certificate-print-area *, #certificate-custom-area, #certificate-custom-area * {
+    visibility: visible;
+  }
+  #certificate-print-area, #certificate-custom-area {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    zoom: 1 !important;
+    max-width: none;
+    print-color-adjust: exact;
+  }
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+}

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Official PUP Unisan Supreme Student Council feedback form and certificate generator.">
+  <title>PUP Unisan SSC | Feedback & Certificates</title>
+  <link rel="icon" type="image/jpeg" href="assets/ssc-logo.jpg">
+  <meta name="theme-color" content="#800020">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-shell">
+    
+    <!-- GOOGLE FORMS TOP NAVBAR -->
+    <header class="gf-navbar">
+      <div class="gf-navbar-inner">
+        <div class="gf-logo-group" id="nav-brand-group" title="PUP Unisan Supreme Student Council">
+          <img class="ssc-nav-logo" src="assets/ssc-logo.jpg" width="42" height="42" alt="PUP Unisan Supreme Student Council logo">
+          <span class="gf-nav-title" id="nav-form-title">Summit Feedback</span>
+        </div>
+
+        <div class="gf-nav-actions">
+          <!-- Prominent Send Form Link Button -->
+          <button id="btn-open-send-modal" class="btn-send-link" type="button" title="Send or share form link with participants">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span>Send</span>
+          </button>
+
+          <!-- Toggle Admin / Preview Mode -->
+          <button id="btn-toggle-preview" class="icon-btn" type="button" title="Toggle Admin / Preview Form">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+
+          <!-- Dark / Light Theme Toggle -->
+          <button id="btn-toggle-theme" class="icon-btn" type="button" title="Toggle Dark/Light Mode">
+            <span id="theme-icon">🌙</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Mode Tabs (Visible only in Admin Mode) -->
+      <nav id="admin-tabs-nav" class="gf-nav-tabs" style="display:none;" role="tablist">
+        <button class="gf-tab-item active" data-tab="tab-builder" role="tab">
+          Questions
+        </button>
+        <button class="gf-tab-item" data-tab="tab-responses" role="tab">
+          Responses <span id="admin-response-badge" class="gf-badge">0</span>
+        </button>
+        <button class="gf-tab-item" data-tab="tab-certificate" role="tab">
+          Certificate
+        </button>
+      </nav>
+    </header>
+
+    <!-- MAIN VIEW WRAPPER -->
+    <main class="main-wrapper">
+      <div id="deployment-notice" class="deployment-notice" role="status" hidden></div>
+      
+      <!-- ======================================================================
+           VIEW 1: PARTICIPANT FORM (Google Forms Dark Mode View)
+           ====================================================================== -->
+      <section id="view-participant" class="view active">
+        
+        <!-- Header Card with Top Purple Stripe -->
+        <div class="gf-header-card">
+          <div class="ssc-brand"><img src="assets/ssc-logo.jpg" width="76" height="76" alt="PUP Unisan Supreme Student Council logo"><div><strong>PUP UNISAN</strong><span>Supreme Student Council</span></div></div>
+          <h1 id="public-form-title" class="gf-form-title">Participant Feedback &amp; Summit Survey</h1>
+          <p id="public-form-desc" class="gf-form-desc">
+            Please complete this feedback form to help us evaluate the summit sessions and quality. Upon submission, your official Certificate of Completion will be generated immediately.
+          </p>
+          <div class="gf-required-notice">* Indicates required question</div>
+        </div>
+
+        <div id="participant-alert-box" role="alert" aria-live="polite"></div>
+
+        <form id="participant-survey-form" novalidate>
+          
+          <!-- Participant Full Name Card -->
+          <div class="gf-question-card" id="card-p-name">
+            <div class="gf-q-title-row">
+              <label class="gf-q-title" for="input-p-name">
+                Full Name (for your Certificate) <span class="gf-required-star">*</span>
+              </label>
+            </div>
+            <input 
+              type="text" 
+              id="input-p-name" maxlength="150" 
+              class="gf-input-underline" 
+              placeholder="Your answer" 
+              autocomplete="name" 
+              required
+            >
+            <div class="gf-error-text">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              This is a required question
+            </div>
+          </div>
+
+          <!-- Participant Email Card -->
+          <div class="gf-question-card" id="card-p-email">
+            <div class="gf-q-title-row">
+              <label class="gf-q-title" for="input-p-email">
+                Email Address <span class="gf-required-star">*</span>
+              </label>
+            </div>
+            <input 
+              type="email" 
+              id="input-p-email" maxlength="254" 
+              class="gf-input-underline" 
+              placeholder="Your email address" 
+              autocomplete="email" 
+              inputmode="email"
+              required
+            >
+            <div class="gf-error-text">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              Please enter a valid email address
+            </div>
+          </div>
+
+          <!-- Dynamic Questions Render Container -->
+          <div id="participant-dynamic-questions">
+            <div style="text-align:center; padding: 24px; color: var(--text-muted);">
+              Loading form questions...
+            </div>
+          </div>
+
+          <p class="privacy-notice">Your name, email, and answers will be stored for council event evaluation and certificate issuance. Only authorized council administrators can access responses. Contact the PUP Unisan SSC for access, corrections, or deletion requests. Please avoid including sensitive personal information in your answers.</p>
+          <!-- Form Bottom Actions -->
+          <div class="gf-form-actions">
+            <button id="btn-submit-form" class="btn btn-primary" type="submit">
+              Submit &amp; Generate Certificate
+            </button>
+            <button id="btn-clear-form" class="btn-link" type="button">
+              Clear form
+            </button>
+          </div>
+
+        </form>
+      </section>
+
+
+      <!-- ======================================================================
+           VIEW 2: CERTIFICATE PREVIEW & INSTANT PDF
+           ====================================================================== -->
+      <section id="view-certificate" class="view">
+        <div class="gf-header-card" style="border-top-color: #10b981;">
+          <h2 class="gf-form-title" style="color: #34d399;">Response Recorded!</h2>
+          <p class="gf-form-desc">
+          Thank you for completing the survey. Your certificate has been generated and is ready to download.
+          </p>
+        </div>
+
+        <!-- Certificate Card (Landscape A4 container) -->
+        <div class="cert-preview-container">
+          
+          <!-- Mode 1: Default Vector Gold/Navy Frame -->
+          <div id="certificate-print-area" class="certificate-frame">
+            <div class="cert-corner-accent tl"></div>
+            <div class="cert-corner-accent tr"></div>
+            <div class="cert-corner-accent bl"></div>
+            <div class="cert-corner-accent br"></div>
+            <div class="cert-inner-gold"></div>
+
+            <div>
+              <img class="ssc-certificate-logo" src="assets/ssc-logo.jpg" width="52" height="52" alt="PUP Unisan SSC logo">
+              <div class="cert-ribbon-text">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                Certificate of Participation
+              </div>
+              <h2 id="cert-title-display" class="cert-main-title">Certificate of Completion</h2>
+              <p id="cert-issuer-display" class="cert-issuer-text">PUP Unisan Supreme Student Council</p>
+            </div>
+
+            <div>
+              <p style="font-size:0.75rem; font-style:italic; color:#64748b; margin-bottom:2px;">This certificate is proudly awarded to</p>
+              <div id="cert-recipient-name" class="cert-participant-name">Participant Name</div>
+            </div>
+
+            <p id="cert-body-display" class="cert-body-statement">
+              For active participation, completing the feedback survey, and contributing to the success of the sessions.
+            </p>
+
+            <div class="cert-sig-row">
+              <div>
+                <div id="cert-sig-script" class="cert-signature-draw">Authorized SSC Signatory</div>
+                <div id="cert-sig-name-display" class="cert-sig-line">Authorized SSC Signatory</div>
+                <div id="cert-sig-title-display" style="font-size:0.6rem; color:#64748b;">Program Director</div>
+              </div>
+              <div style="text-align:right; font-size:0.6rem; color:#64748b;">
+                <div id="cert-date-display">Date: October 2026</div>
+                <div>ID: <span id="cert-id-display">SSC-VERIFIED</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mode 2: Custom Uploaded PDF/Image Template Frame -->
+          <div id="certificate-custom-area" class="certificate-custom-frame" style="display:none;">
+            <div id="custom-cert-name-display" class="custom-cert-name-overlay">Participant Name</div>
+          </div>
+
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+          <button id="btn-download-pdf" class="btn btn-primary" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            <span id="pdf-btn-label">Download Certificate (PDF)</span>
+          </button>
+          <button id="btn-print-cert" class="btn btn-secondary" type="button">
+            Print Certificate
+          </button>
+          <button id="btn-submit-another" class="btn-link" type="button">
+            Submit another response
+          </button>
+        </div>
+      </section>
+
+
+      <!-- ======================================================================
+           VIEW 3: ADMIN MANAGEMENT PORTAL (Google Forms Builder)
+           ====================================================================== -->
+      <section id="view-admin" class="view">
+        
+        <!-- Auth Gate if not signed in -->
+        <div id="admin-auth-box">
+          <div class="gf-header-card">
+            <h2 class="gf-form-title">Admin Sign In</h2>
+            <p class="gf-form-desc">Sign in with your Supabase credentials to edit form questions, upload certificate templates, or view responses.</p>
+          </div>
+
+          <div id="admin-auth-alert"></div>
+
+          <form id="admin-login-form" class="gf-question-card">
+            <div style="margin-bottom: 12px;">
+              <label class="gf-q-title" for="admin-email">Admin Email</label>
+              <input type="email" id="admin-email" class="gf-input-card" placeholder="admin@example.com" required>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label class="gf-q-title" for="admin-password">Password</label>
+              <input type="password" id="admin-password" class="gf-input-card" placeholder="••••••••" required>
+            </div>
+            <button type="submit" id="btn-admin-login" class="btn btn-primary" style="width:100%;">
+              Sign In to Form Builder
+            </button>
+          </form>
+
+          <div style="text-align: center; margin-top: 14px;">
+            <button id="btn-back-to-public-form" class="btn-link" type="button">
+              &larr; Return to Public Form
+            </button>
+          </div>
+        </div>
+
+        <!-- Admin Dashboard Content (When Authenticated) -->
+        <div id="admin-dashboard-box" style="display:none;">
+
+          <!-- TAB 1: FORM BUILDER (Google Forms Style) -->
+          <div id="tab-builder" class="admin-tab-pane active">
+            
+            <!-- JSON Import/Export Action Bar -->
+            <div class="gf-builder-toolbar">
+              <div style="font-size:0.85rem; font-weight:700; color:var(--text-muted);">
+                FORM QUESTIONS
+              </div>
+              <div style="display:flex; gap:8px;">
+                <input type="file" id="input-json-file" accept=".json,application/json" style="display:none;">
+                <button type="button" id="btn-trigger-import-json" class="btn btn-secondary btn-sm" title="Upload a JSON file to add questions automatically">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                  Import JSON
+                </button>
+                <button type="button" id="btn-export-json" class="btn btn-secondary btn-sm" title="Export current questions as JSON">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                  Export JSON
+                </button>
+                <button type="button" id="btn-show-json-format" class="btn btn-secondary btn-sm" title="View sample JSON format">
+                  ℹ️ Format
+                </button>
+              </div>
+            </div>
+
+            <!-- Editable Form Header Card -->
+            <div class="gf-header-card">
+              <div class="gf-builder-header-inputs">
+                <input 
+                  type="text" 
+                  id="builder-form-title" 
+                  class="gf-input-underline" 
+                  style="font-size:1.4rem; font-weight:700;" 
+                  value="Participant Feedback &amp; Summit Survey"
+                  placeholder="Form title"
+                >
+                <textarea 
+                  id="builder-form-desc" 
+                  class="gf-input-underline gf-textarea" 
+                  style="font-size:0.95rem; min-height:60px;" 
+                  placeholder="Form description"
+                >Please complete this feedback form to help us evaluate the summit sessions and quality. Upon submission, your official Certificate of Completion will be generated immediately.</textarea>
+              </div>
+            </div>
+
+            <!-- List of Editable Question Cards -->
+            <div id="builder-questions-list"></div>
+
+            <!-- Floating Action Bar for Builder -->
+            <div class="gf-floating-bar">
+              <div class="gf-floating-inner">
+                <button id="btn-builder-add-question" class="btn btn-primary" style="min-height:36px; padding:6px 14px; border-radius:999px;" type="button">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  Add question
+                </button>
+                <button id="btn-builder-save-all" class="btn btn-secondary" style="min-height:36px; padding:6px 14px; border-radius:999px;" type="button">
+                  Save Changes
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB 2: RESPONSES -->
+          <div id="tab-responses" class="admin-tab-pane" style="display:none;">
+            <div class="gf-header-card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <h2 class="gf-form-title" style="margin-bottom:2px;"><span id="responses-counter">0</span> responses</h2>
+                  <p class="gf-form-desc" style="margin-bottom:0;">Submissions received from participants</p>
+                </div>
+                <button id="btn-export-csv" class="btn btn-secondary" style="width:auto; font-size:0.85rem;" type="button">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                  Export CSV
+                </button>
+              </div>
+            </div>
+
+            <div id="admin-responses-container">Loading responses...</div>
+          </div>
+
+          <!-- TAB 3: CERTIFICATE & CUSTOM TEMPLATE UPLOADER -->
+          <div id="tab-certificate" class="admin-tab-pane" style="display:none;">
+            
+            <div class="gf-question-card">
+              <h2 class="gf-q-title" style="margin-bottom:12px; font-size:1.15rem;">Certificate Design Mode</h2>
+              <div class="cert-mode-selector">
+                <button type="button" id="btn-mode-default" class="cert-mode-btn active">
+                  <span>🏛️ Built-in Frame</span>
+                </button>
+                <button type="button" id="btn-mode-custom" class="cert-mode-btn">
+                  <span>📁 Upload Custom Template (PDF / Image)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- CUSTOM UPLOAD SECTION (Shown when Custom Mode is selected) -->
+            <div id="section-custom-template" class="gf-question-card" style="display:none;">
+              <h3 class="gf-q-title" style="margin-bottom:8px;">Upload Custom Certificate Template</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
+                Upload your organization's official certificate PDF or high-res image (.pdf, .png, .jpg). The participant's name will be dynamically rendered on top.
+              </p>
+
+              <input type="file" id="input-cert-template-file" accept=".pdf,.png,.jpg,.jpeg" style="display:none;">
+              
+              <div id="cert-upload-dropzone" class="cert-dropzone">
+                <div class="cert-dropzone-icon">📄</div>
+                <div style="font-weight:600; font-size:0.95rem;">Click or drag PDF / Image template here</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Supports Landscape A4 PDF or PNG/JPG</div>
+                <div id="cert-selected-filename" class="cert-file-badge" style="display:none;">
+                  <span id="cert-file-name-text">template.pdf</span>
+                  <button type="button" id="btn-remove-template" style="background:none; border:none; color:var(--error); cursor:pointer; font-weight:700;">&times;</button>
+                </div>
+              </div>
+
+              <h4 class="gf-q-title" style="margin: 16px 0 10px; font-size:0.95rem;">Participant Name Positioning &amp; Styling</h4>
+
+              <!-- Vertical Position Slider -->
+              <div class="gf-slider-row">
+                <div class="gf-slider-label">
+                  <span>Vertical Position (Y-Axis)</span>
+                  <span id="label-name-y">52%</span>
+                </div>
+                <input type="range" id="slider-name-y" class="gf-range-input" min="15" max="85" value="52">
+              </div>
+
+              <!-- Font Size Slider -->
+              <div class="gf-slider-row">
+                <div class="gf-slider-label">
+                  <span>Font Size</span>
+                  <span id="label-name-size">32px</span>
+                </div>
+                <input type="range" id="slider-name-size" class="gf-range-input" min="18" max="64" value="32">
+              </div>
+
+              <!-- Typography & Color Row -->
+              <div style="display:grid; grid-template-columns: 1fr 100px; gap:10px; margin-bottom:16px;">
+                <div>
+                  <label class="gf-q-title" style="font-size:0.85rem;" for="select-name-font">Font Style</label>
+                  <select id="select-name-font" class="gf-select" style="width:100%;">
+                    <option value="serif">Elegant Serif (Georgia / Times)</option>
+                    <option value="sans-serif">Modern Sans (Helvetica / Arial)</option>
+                    <option value="script">Script / Calligraphy Style</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="gf-q-title" style="font-size:0.85rem;" for="input-name-color">Text Color</label>
+                  <input type="color" id="input-name-color" value="#1e3a8a" style="width:100%; height:44px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; padding:2px;">
+                </div>
+              </div>
+
+              <!-- Live Interactive Template Preview -->
+              <div style="margin-top:14px;">
+                <label class="gf-q-title" style="font-size:0.85rem; margin-bottom:6px; display:block;">Live Template Preview</label>
+                <div class="cert-preview-container">
+                  <div id="admin-custom-cert-preview" class="certificate-custom-frame">
+                    <div id="admin-name-overlay-preview" class="custom-cert-name-overlay">Sample Participant Name</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top:16px;">
+                <button type="button" id="btn-save-custom-template" class="btn btn-primary" style="width:100%;">
+                  Save Custom Template Settings
+                </button>
+              </div>
+
+            </div>
+
+            <!-- DEFAULT TEMPLATE SETTINGS SECTION (Shown when Default Mode is selected) -->
+            <form id="form-cert-settings" class="gf-question-card">
+              <h3 class="gf-q-title" style="margin-bottom:14px; font-size:1.15rem;">Built-in Template Text Settings</h3>
+
+              <div style="margin-bottom: 12px;">
+                <label class="gf-q-title" for="setting-cert-title">Certificate Title</label>
+                <input type="text" id="setting-cert-title" class="gf-input-card" required>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <label class="gf-q-title" for="setting-cert-issuer">Issuing Organization / Summit</label>
+                <input type="text" id="setting-cert-issuer" class="gf-input-card" required>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <label class="gf-q-title" for="setting-cert-body">Statement Body</label>
+                <textarea id="setting-cert-body" class="gf-input-card gf-textarea" rows="3" required></textarea>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Use <code>{name}</code> where the participant's name should appear.</p>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <label class="gf-q-title" for="setting-cert-signame">Signatory Name</label>
+                <input type="text" id="setting-cert-signame" class="gf-input-card" required>
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label class="gf-q-title" for="setting-cert-sigtitle">Signatory Title</label>
+                <input type="text" id="setting-cert-sigtitle" class="gf-input-card" required>
+              </div>
+
+              <button type="submit" id="btn-save-cert-settings" class="btn btn-primary" style="width:100%;">
+                Save Certificate Settings
+              </button>
+            </form>
+
+            <div style="text-align:center; margin-top:20px;">
+              <button id="btn-admin-signout" class="btn btn-secondary" style="max-width:200px; margin:0 auto;" type="button">
+                Sign Out Admin
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <div>PUP Unisan &bull; Supreme Student Council</div>
+      <div style="margin-top: 8px; display:flex; justify-content:center; gap:16px;">
+        <button id="link-footer-admin" class="footer-link" type="button">Admin Portal</button>
+        <button id="link-footer-config" class="footer-link" type="button">⚙️ Supabase Config</button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ======================================================================
+       SEND FORM / SHARE LINK MODAL (Google Forms Style)
+       ====================================================================== -->
+  <div id="modal-send-form" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="send-modal-title">
+    <div class="gf-modal">
+      <div class="gf-modal-header">
+        <h3 id="send-modal-title" class="gf-modal-title">Send form</h3>
+        <button id="btn-close-send-modal" class="gf-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:8px;">
+        Share this link with participants. When they open it, they will directly see and complete the survey:
+      </p>
+
+      <div class="gf-link-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--primary); flex-shrink:0;">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+        <input type="text" id="share-link-input" class="gf-link-input" readonly>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button id="btn-open-form-link" class="btn btn-secondary" type="button">
+          Open in New Tab
+        </button>
+        <button id="btn-copy-form-link" class="btn btn-primary" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span id="copy-btn-text">Copy</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       SAMPLE JSON FORMAT MODAL
+       ====================================================================== -->
+  <div id="modal-json-format" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="json-format-title">
+    <div class="gf-modal">
+      <div class="gf-modal-header">
+        <h3 id="json-format-title" class="gf-modal-title">Questions JSON Schema</h3>
+        <button id="btn-close-json-modal" class="gf-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">
+        Upload a <code>.json</code> file structured as an array of question objects (or an object with a <code>questions</code> array):
+      </p>
+
+      <pre style="background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; font-size:0.75rem; color:var(--text-main); overflow-x:auto; margin-bottom:14px;">[
+  {
+    "question_text": "How would you rate the overall summit experience?",
+    "question_type": "rating",
+    "is_required": true
+  },
+  {
+    "question_text": "Which session tracks did you attend?",
+    "question_type": "choice",
+    "options": ["Keynote", "Technical Deep Dives", "Hands-on Workshops"],
+    "is_required": true
+  },
+  {
+    "question_text": "What topics would you like to see next time?",
+    "question_type": "paragraph",
+    "is_required": false
+  }
+]</pre>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" id="btn-download-sample-json" class="btn btn-secondary">
+          Download Sample JSON
+        </button>
+        <button type="button" id="btn-done-json-modal" class="btn btn-primary">
+          Got It
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPABASE CONFIG MODAL -->
+  <div id="modal-supabase-config" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cfg-modal-title">
+    <div class="gf-modal">
+      <div class="gf-modal-header">
+        <h3 id="cfg-modal-title" class="gf-modal-title">Supabase Settings</h3>
+        <button id="btn-close-config-modal" class="gf-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
+        Connect to your Supabase project URL and anon public API key. Saved locally in your browser.
+      </p>
+
+      <form id="form-supabase-config">
+        <div style="margin-bottom: 12px;">
+          <label class="gf-q-title" for="cfg-url">Supabase Project URL</label>
+          <input type="url" id="cfg-url" class="gf-input-card" placeholder="https://xyz.supabase.co" required>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label class="gf-q-title" for="cfg-key">Supabase Anon Key</label>
+          <input type="text" id="cfg-key" class="gf-input-card" placeholder="eyJhbGci..." required>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button type="submit" class="btn btn-primary">Save &amp; Connect</button>
+          <button type="button" id="btn-cfg-demo" class="btn btn-secondary">Switch to Demo Mode (Offline)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="gf-toast" class="gf-toast">Notification</div>
+
+  <!-- Supabase CDN (Ultra-light JS) -->
+
+  <!-- Application Logic -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
