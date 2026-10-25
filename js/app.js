@@ -28,7 +28,8 @@ import { createClient } from '@supabase/supabase-js';
       id: 1,
       form_title: "Participant Feedback & Summit Survey",
       form_description: "Please complete this feedback form to help us evaluate the summit sessions and quality. Upon submission, your official Certificate of Completion will be generated immediately.",
-      theme_color: "#7c3aed"
+      theme_color: "#7c3aed",
+      allow_duplicate_responses: false
     },
     questions: [
       {
@@ -346,6 +347,7 @@ import { createClient } from '@supabase/supabase-js';
     publicFormDesc.textContent = formSettings.form_description || '';
     builderFormTitle.value = formSettings.form_title || '';
     builderFormDesc.value = formSettings.form_description || '';
+    document.getElementById('allow-duplicate-responses').checked = formSettings.allow_duplicate_responses === true;
 
     // Certificate text
     certTitleDisplay.textContent = certSettings.title || 'Certificate of Completion';
@@ -659,7 +661,7 @@ import { createClient } from '@supabase/supabase-js';
     try {
       if (isDemoMode) {
         const exists = demoStore.responses.some(r => r.email === email);
-        if (exists) {
+        if (exists && !formSettings.allow_duplicate_responses) {
           throw { code: '23505', message: 'duplicate key value violates unique constraint' };
         }
 
@@ -1223,6 +1225,31 @@ import { createClient } from '@supabase/supabase-js';
       cards[cards.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
       const promptInput = cards[cards.length - 1].querySelector('.q-builder-prompt');
       if (promptInput) promptInput.focus();
+    }
+  });
+
+  document.getElementById('btn-save-response-settings').addEventListener('click', async () => {
+    const button = document.getElementById('btn-save-response-settings');
+    const status = document.getElementById('response-settings-status');
+    const allowDuplicates = document.getElementById('allow-duplicate-responses').checked;
+    status.textContent = '';
+    setButtonLoading(button, true, 'Saving...');
+    try {
+      if (isDemoMode) {
+        demoStore.formSettings.allow_duplicate_responses = allowDuplicates;
+      } else {
+        const { data, error } = await supabaseClient.from('form_settings')
+          .update({ allow_duplicate_responses: allowDuplicates, updated_at: new Date().toISOString() })
+          .eq('id', 1).select('allow_duplicate_responses').single();
+        if (error) throw error;
+        if (data.allow_duplicate_responses !== allowDuplicates) throw new Error('The response setting was not saved.');
+      }
+      formSettings.allow_duplicate_responses = allowDuplicates;
+      status.textContent = allowDuplicates ? 'Saved: repeat submissions are allowed.' : 'Saved: each email can submit once.';
+    } catch (error) {
+      status.textContent = 'Could not save response settings. Apply the database migration if needed. ' + error.message;
+    } finally {
+      setButtonLoading(button, false, 'Save Response Settings');
     }
   });
 

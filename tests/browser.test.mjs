@@ -150,6 +150,31 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
     assert.equal(await imageDownload.failure(), null);
     await imageDownload.saveAs('test-results/custom-image-certificate.pdf');
     await assertCertificateFillsPage(await readFile(await imageDownload.path()));
+    await page.locator('#link-footer-admin').click();
+    await page.locator('[data-tab="tab-builder"]').click();
+    assert.equal(await page.locator('#allow-duplicate-responses').isChecked(), false);
+    await page.locator('#allow-duplicate-responses').check();
+    await page.locator('#btn-save-response-settings').click();
+    await page.waitForFunction(() => document.getElementById('response-settings-status').textContent.includes('repeat submissions are allowed'));
+    await page.locator('#btn-toggle-preview').click();
+    async function submitRepeat() {
+      await page.locator('#input-p-name').fill('Maria Dela Cruz');
+      await page.locator('#input-p-email').fill('maria@example.com');
+      for (const scale of await page.locator('.gf-rating-scale').all()) await scale.locator('button').last().click();
+      await page.locator('.gf-options-list').first().locator('.gf-option-row').first().click();
+      await page.locator('#btn-submit-form').click();
+    }
+    await submitRepeat();
+    await page.locator('#view-certificate.active').waitFor();
+    await page.locator('#link-footer-admin').click();
+    assert.equal(await page.locator('#allow-duplicate-responses').isChecked(), true);
+    await page.locator('#allow-duplicate-responses').uncheck();
+    await page.locator('#btn-save-response-settings').click();
+    await page.waitForFunction(() => document.getElementById('response-settings-status').textContent.includes('each email can submit once'));
+    await page.locator('#btn-toggle-preview').click();
+    await submitRepeat();
+    await page.waitForFunction(() => document.getElementById('participant-alert-box').textContent.includes('already responded'));
+    assert.equal(await page.locator('#view-certificate.active').count(), 0);
     assert.deepEqual(errors, []);
   } finally { await browser?.close(); server.kill(); }
 });

@@ -314,6 +314,17 @@
               </div>
             </div>
 
+            <section class="gf-question-card" aria-labelledby="response-settings-title">
+              <h3 id="response-settings-title" class="gf-q-title">Response settings</h3>
+              <label style="display:flex; gap:10px; align-items:center; margin:14px 0;">
+                <input type="checkbox" id="allow-duplicate-responses">
+                Allow multiple responses from the same email address
+              </label>
+              <p class="gf-form-desc">Off: each email can submit once. On: repeat submissions are saved as separate responses and can generate certificates. Turning this off keeps all existing responses.</p>
+              <button type="button" id="btn-save-response-settings" class="btn btn-secondary">Save Response Settings</button>
+              <p id="response-settings-status" role="status" style="margin-top:10px;"></p>
+            </section>
+
             <!-- List of Editable Question Cards -->
             <div id="builder-questions-list"></div>
 

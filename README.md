@@ -61,12 +61,18 @@ No Supabase or Vercel account is connected to this workspace; deployment and liv
 ## Before sharing with students
 
 - Submit a test response; confirm it appears in the admin portal, CSV exports correctly, and the PDF downloads with the logo and expected layout.
-- Try the same email again; it must not create another response or issue a certificate for a different name.
+- With repeat submissions disabled (the default), try the same email again; it must not create another response or issue a certificate for a different name.
 - Signed-out participants and signed-in accounts without the admin role must be unable to read responses or edit settings through the API.
 - Review the privacy notice with your council, adding a real contact channel and retention period before collecting student information. Never ask for passwords or unnecessary sensitive data.
 - Set the correct certificate issuer and signatory. Certificates are generated in the browser; they are not cryptographically signed or independently verifiable.
 
 ## Verification
+
+### Allowing repeat submissions
+
+For an existing Supabase project, run `migrations/20261025_allow_duplicate_responses.sql` in **SQL Editor** before deploying this update. It preserves all responses. New projects can use the full `supabase-schema.sql`, which includes this change.
+
+In the admin **Form Builder → Response settings**, check **Allow multiple responses from the same email address**, then click **Save Response Settings**. This is off by default. When enabled, each submission is stored separately and can generate a certificate. Turn it off to block further submissions from any email already used; existing responses remain. The database enforces the setting, including for direct API requests and concurrent submissions. Email addresses are compared without case or surrounding spaces; this does not verify email ownership.
 
 ```powershell
 npx playwright install chromium
@@ -79,7 +85,7 @@ Tests exercise database policies, input validation, transaction rollback, build 
 
 ## Current limits and useful next additions
 
-- The database holds one survey; the email uniqueness rule applies to that single survey. Add separate events/forms before reusing it for multiple events.
+- The database holds one survey; when repeat submissions are disabled, each email can submit only once across that survey. Add separate events/forms before reusing it for multiple events.
 - Public submission has no CAPTCHA or rate limit. Add a verified Turnstile challenge with a server/Edge Function before distributing the link widely. Browser-only checks cannot prevent automated submissions.
 - Certificate downloads happen after a successful submission. Lost certificates need council assistance; secure self-service recovery should verify ownership by email.
 - Custom PNG/JPEG/PDF templates are stored in settings as base64, limited to 3 MB per upload. Supabase Storage is a better next step for larger templates.
