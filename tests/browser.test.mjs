@@ -77,6 +77,11 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
     });
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
+    // Reproduce the older browsers where PDF.js's modern build failed.
+    await page.addInitScript(() => {
+      Map.prototype.getOrInsertComputed = undefined;
+      Promise.try = undefined;
+    });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto('http://127.0.0.1:3000');

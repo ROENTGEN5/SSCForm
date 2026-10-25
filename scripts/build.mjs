@@ -22,7 +22,7 @@ await mkdir('dist/js', { recursive: true });
 await build({ entryPoints: ['js/app.js'], outdir: 'dist/js', bundle: true, splitting: true, format: 'esm', minify: true, target: ['es2022'], define: {
   __APP_CONFIG__: JSON.stringify({ url: demo ? '' : url, key: demo ? '' : key, demo })
 } });
-await cp('node_modules/pdfjs-dist/build/pdf.worker.mjs', 'dist/js/pdf.worker.js');
+await cp('node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', 'dist/js/pdf.worker.js');
 for (const [source, target] of [['standard_fonts', 'pdf-fonts'], ['cmaps', 'pdf-cmaps'], ['wasm', 'pdf-wasm']]) {
   await cp(`node_modules/pdfjs-dist/${source}`, `dist/${target}`, { recursive: true });
 }

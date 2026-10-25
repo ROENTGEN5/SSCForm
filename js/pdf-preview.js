@@ -1,4 +1,6 @@
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+// The compatibility build includes polyfills for browsers without newer Map
+// and Promise APIs. The main library and worker must use the same build.
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 GlobalWorkerOptions.workerSrc = new URL('./pdf.worker.js', import.meta.url).href;
 let cachedSource;
