@@ -49,7 +49,10 @@
 .ssc-brand strong { display: block; font-size: 0.9rem; letter-spacing: 0.12em; color: #e7b84b; }
 .ssc-brand span { display: block; font-size: 0.95rem; margin-top: 3px; }
 .ssc-certificate-logo { display: block; margin: 0 auto 5px; border-radius: 50%; }
-.privacy-notice { font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; margin: 18px 0; }
+.privacy-notice { font-size: 0.9rem; color: var(--text-main); line-height: 1.6; margin: 18px 0; }
+.privacy-notice h2 { font-size: 1rem; font-weight: 700; line-height: 1.5; margin: 0 0 8px; }
+.privacy-notice p { margin: 0; }
+.privacy-notice p + p { margin-top: 20px; }
 .deployment-notice { border: 1px solid var(--warning); color: var(--warning); padding: 14px; margin-bottom: 16px; border-radius: 10px; font-size: 0.85rem; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 3px solid #e7b84b; outline-offset: 3px; }
 @media (max-width: 420px) { .gf-nav-title { max-width: 110px !important; } .gf-nav-actions { gap: 4px !important; } .ssc-brand { gap: 12px; } }
