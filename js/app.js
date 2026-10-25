@@ -875,11 +875,12 @@ import { createClient } from '@supabase/supabase-js';
         exportCopy.style.height = `${580 / 1.414}px`;
         exportCopy.style.maxWidth = 'none';
         exportCopy.style.boxShadow = 'none';
-        // Capture at the preview's design size, then fit the complete image to
-        // the PDF page. CSS pixels must not determine its physical print size.
+        // A4 landscape at 300 DPI is about 3508 x 2480 pixels. Keep layout
+        // coordinates stable while rendering enough pixels for printing.
+        const exportScale = 3508 / 580;
         const canvas = await window.html2pdf().set({
           margin: 0,
-          html2canvas: { scale: 3, width: 580, height: Math.round(580 / 1.414), useCORS: true, logging: false, windowWidth: 1280 },
+          html2canvas: { scale: exportScale, width: 580, height: Math.round(580 / 1.414), useCORS: true, logging: false, windowWidth: 1280 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         }).from(exportCopy).toCanvas().get('canvas');
         const PDFLib = await loadPdfLibEngine();

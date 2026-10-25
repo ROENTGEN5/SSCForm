@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { PDFDocument, decodePDFRawStream } from 'pdf-lib';
+import { PDFDocument, PDFName, decodePDFRawStream } from 'pdf-lib';
 
 async function assertCertificateFillsPage(bytes) {
   const doc = await PDFDocument.load(bytes);
@@ -16,6 +16,11 @@ async function assertCertificateFillsPage(bytes) {
   const matrices = [...content.matchAll(/([\d.]+) 0 0 ([\d.]+) [\d.\-]+ [\d.\-]+ cm/g)];
   assert.ok(matrices.some(m => Number(m[1]) >= page.getWidth() * 0.98 && Number(m[2]) >= page.getHeight() * 0.98),
     'Certificate artwork should occupy at least 98% of the A4 landscape page in both dimensions');
+  const images = doc.context.enumerateIndirectObjects().map(([, object]) => object)
+    .filter(object => object.dict?.get(PDFName.of('Subtype'))?.toString() === '/Image');
+  assert.ok(images.some(image => image.dict.get(PDFName.of('Width')).asNumber() >= 3500
+    && image.dict.get(PDFName.of('Height')).asNumber() >= 2470),
+  'Certificate artwork should be embedded at approximately 300 DPI for A4 printing');
 }
 
 test('build rejects missing configuration and secret keys', () => {
