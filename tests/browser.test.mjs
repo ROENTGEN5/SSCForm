@@ -175,6 +175,55 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
     await submitRepeat();
     await page.waitForFunction(() => document.getElementById('participant-alert-box').textContent.includes('already responded'));
     assert.equal(await page.locator('#view-certificate.active').count(), 0);
+    await page.locator('#link-footer-admin').click();
+    await page.locator('[data-tab="tab-certificate"]').click();
+    const invalidSvgDialog = page.waitForEvent('dialog');
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('#input-cert-template-file').setInputFiles({
+      name: 'unsafe.svg', mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
+    });
+    assert.match((await invalidSvgDialog).message(), /static SVG/);
+    assert.equal(await page.locator('#cert-file-name-text').textContent(), 'certificate.png');
+    const externalSvgDialog = page.waitForEvent('dialog');
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('#input-cert-template-file').setInputFiles({
+      name: 'external.svg', mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 842 595"><image href="https://example.com/photo.png" width="842" height="595"/></svg>')
+    });
+    assert.match((await externalSvgDialog).message(), /Embed images/);
+    await page.locator('#input-cert-template-file').setInputFiles({
+      name: 'vector-certificate.svg', mimeType: 'image/svg+xml',
+      buffer: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 842 595">
+        <style>.title { fill: #702020; font-family: Times; font-size: 32px; }</style>
+        <rect width="842" height="595" fill="#fff9e6"/>
+        <rect x="8" y="8" width="826" height="579" fill="none" stroke="#702020" stroke-width="12"/>
+        <path d="M 24 24 L 818 24 L 818 571 L 24 571 Z" fill="none" stroke="#bd932c" stroke-width="3"/>
+        <text x="421" y="145" text-anchor="middle" class="title">CERTIFICATE OF PARTICIPATION</text>
+        <!--${'x'.repeat(10 * 1024 * 1024)}-->
+      </svg>`)
+    });
+    await page.waitForFunction(() => document.getElementById('cert-file-name-text').textContent === 'vector-certificate.svg.pdf');
+    await page.locator('#btn-save-custom-template').click();
+    await page.locator('#btn-toggle-preview').click();
+    await page.locator('#input-p-name').fill('SVG Test Participant');
+    await page.locator('#input-p-email').fill('svg@example.com');
+    for (const scale of await page.locator('.gf-rating-scale').all()) await scale.locator('button').last().click();
+    await page.locator('.gf-options-list').first().locator('.gf-option-row').first().click();
+    await page.locator('#btn-submit-form').click();
+    await page.locator('#view-certificate.active').waitFor();
+    const vectorDownloadPromise = page.waitForEvent('download', { timeout: 60000 });
+    await page.locator('#btn-download-pdf').click();
+    const vectorDownload = await vectorDownloadPromise;
+    assert.equal(await vectorDownload.failure(), null);
+    await vectorDownload.saveAs('test-results/svg-certificate.pdf');
+    const vectorDoc = await PDFDocument.load(await readFile(await vectorDownload.path()));
+    assert.equal(vectorDoc.getPageCount(), 1);
+    const vectorPage = vectorDoc.getPages()[0];
+    assert.ok(Math.abs(vectorPage.getWidth() - 841.89) < 1 && Math.abs(vectorPage.getHeight() - 595.28) < 1);
+    assert.equal(vectorDoc.context.enumerateIndirectObjects().some(([, object]) =>
+      object.dict?.get(PDFName.of('Subtype'))?.toString() === '/Image'), false,
+    'A vector-only SVG template must remain vector artwork in the downloaded PDF');
     assert.deepEqual(errors, []);
   } finally { await browser?.close(); server.kill(); }
 });

@@ -8,6 +8,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.js';
 
 (function () {
   'use strict';
@@ -1551,32 +1552,54 @@ import { createClient } from '@supabase/supabase-js';
     }
   });
 
-  function handleTemplateFile(file) {
-    if (file.size > 3 * 1024 * 1024) { alert('Choose a template smaller than 3 MB.'); return; }
+  let templateUploadVersion = 0;
+  async function handleTemplateFile(file) {
+    const uploadVersion = ++templateUploadVersion;
+    btnSaveCustomTemplate.disabled = false;
+    if (file.size > MAX_TEMPLATE_BYTES) { alert(`Choose a template no larger than ${MAX_TEMPLATE_SIZE_LABEL}.`); return; }
     const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+    const isSvg = file.name.toLowerCase().endsWith('.svg') || file.type === 'image/svg+xml';
     const isImg = ['image/png', 'image/jpeg'].includes(file.type);
 
-    if (!isPdf && !isImg) {
-      alert('Please upload a PDF (.pdf) or Image (.png, .jpg) file.');
+    if (!isPdf && !isSvg && !isImg) {
+      alert('Please upload a PDF, SVG, PNG, or JPG file.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      certSettings.template_type = isPdf ? 'custom_pdf' : 'custom_image';
-      certSettings.template_filename = file.name;
-      certSettings.template_data = e.target.result; // Base64 Data URL
-
+    btnSaveCustomTemplate.disabled = true;
+    try {
+      let data;
+      if (isSvg) {
+        showToast('Preparing vector SVG template...');
+        const { svgTemplateToPdf } = await import('./svg-template.js');
+        data = await svgTemplateToPdf(await file.text());
+      } else {
+        data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('Could not read the template file.'));
+          reader.readAsDataURL(file);
+        });
+      }
+      if (uploadVersion !== templateUploadVersion) return;
+      certSettings.template_type = isPdf || isSvg ? 'custom_pdf' : 'custom_image';
+      certSettings.template_filename = isSvg ? `${file.name}.pdf` : file.name;
+      certSettings.template_data = data;
       certSelectedFilename.style.display = 'inline-flex';
-      certFileNameText.textContent = file.name;
+      certFileNameText.textContent = certSettings.template_filename;
       updateLiveCustomPreview();
-      showToast(`Template uploaded: ${file.name}`);
-    };
-    reader.readAsDataURL(file);
+      showToast(isSvg ? 'SVG prepared as a vector PDF. Save the template settings to apply it.' : `Template uploaded: ${file.name}`);
+    } catch (error) {
+      if (uploadVersion === templateUploadVersion) alert('Could not upload template: ' + error.message);
+    } finally {
+      if (uploadVersion === templateUploadVersion) btnSaveCustomTemplate.disabled = false;
+    }
   }
 
   btnRemoveTemplate.addEventListener('click', (e) => {
     e.stopPropagation();
+    templateUploadVersion++;
+    btnSaveCustomTemplate.disabled = false;
     certSettings.template_data = '';
     certSettings.template_filename = '';
     certSettings.template_type = 'default';

@@ -371,7 +371,7 @@
                   <span>🏛️ Built-in Frame</span>
                 </button>
                 <button type="button" id="btn-mode-custom" class="cert-mode-btn">
-                  <span>📁 Upload Custom Template (PDF / Image)</span>
+                  <span>📁 Upload Custom Template (PDF / SVG / Image)</span>
                 </button>
               </div>
             </div>
@@ -380,15 +380,15 @@
             <div id="section-custom-template" class="gf-question-card" style="display:none;">
               <h3 class="gf-q-title" style="margin-bottom:8px;">Upload Custom Certificate Template</h3>
               <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
-                Upload your organization's official certificate PDF or high-res image (.pdf, .png, .jpg). The participant's name will be dynamically rendered on top.
+                Upload your organization's official certificate PDF, SVG, or high-res image (.png, .jpg). The participant's name will be dynamically rendered on top.
               </p>
 
-              <input type="file" id="input-cert-template-file" accept=".pdf,.png,.jpg,.jpeg" style="display:none;">
+              <input type="file" id="input-cert-template-file" accept=".pdf,.svg,.png,.jpg,.jpeg" style="display:none;">
               
               <div id="cert-upload-dropzone" class="cert-dropzone">
                 <div class="cert-dropzone-icon">📄</div>
-                <div style="font-weight:600; font-size:0.95rem;">Click or drag PDF / Image template here</div>
-                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">For sharp printing, use the original landscape A4 PDF or a PNG/JPG at least 3508 × 2480 pixels. Maximum upload: 3 MB.</div>
+                <div style="font-weight:600; font-size:0.95rem;">Click or drag PDF / SVG / Image template here</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">For sharp printing, use the original landscape A4 PDF or SVG. SVG artwork is prepared as a vector PDF. Use outlined text for custom fonts; embedded photos keep their original resolution. PNG/JPG: at least 3508 × 2480 pixels. Maximum upload: 20 MB.</div>
                 <div id="cert-selected-filename" class="cert-file-badge" style="display:none;">
                   <span id="cert-file-name-text">template.pdf</span>
                   <button type="button" id="btn-remove-template" style="background:none; border:none; color:var(--error); cursor:pointer; font-weight:700;">&times;</button>
