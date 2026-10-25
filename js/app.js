@@ -791,6 +791,17 @@ import { createClient } from '@supabase/supabase-js';
 
   function loadPdfLibEngine() { return import('pdf-lib'); }
 
+  function downloadPdf(bytes, filename) {
+    const blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
+
   // Instant PDF Download
   btnDownloadPdf.addEventListener('click', async () => {
     btnDownloadPdf.disabled = true;
@@ -846,16 +857,7 @@ import { createClient } from '@supabase/supabase-js';
           color: PDFLib.rgb(r, g, b)
         });
 
-        const modifiedPdfBytes = await pdfDoc.save();
-        const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
+        downloadPdf(await pdfDoc.save(), filename);
 
       } else {
         // Branch 2: Default vector or Custom Image template rendered via html2pdf
@@ -866,19 +868,32 @@ import { createClient } from '@supabase/supabase-js';
           ? document.getElementById('certificate-custom-area')
           : document.getElementById('certificate-print-area');
 
-        const opt = {
-          margin: [8, 8, 8, 8],
-          filename: filename,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, logging: false },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-        };
-
         const exportCopy = certEl.cloneNode(true);
         exportCopy.style.zoom = '1';
-        exportCopy.style.margin = '0 auto';
-        if (certSettings.template_type === 'custom_image') exportCopy.style.width = '580px';
-        await window.html2pdf().set(opt).from(exportCopy).save();
+        exportCopy.style.margin = '0';
+        exportCopy.style.width = '580px';
+        exportCopy.style.height = `${580 / 1.414}px`;
+        exportCopy.style.maxWidth = 'none';
+        exportCopy.style.boxShadow = 'none';
+        // Capture at the preview's design size, then fit the complete image to
+        // the PDF page. CSS pixels must not determine its physical print size.
+        const canvas = await window.html2pdf().set({
+          margin: 0,
+          html2canvas: { scale: 3, width: 580, height: Math.round(580 / 1.414), useCORS: true, logging: false, windowWidth: 1280 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        }).from(exportCopy).toCanvas().get('canvas');
+        const PDFLib = await loadPdfLibEngine();
+        const pdfDoc = await PDFLib.PDFDocument.create();
+        const page = pdfDoc.addPage([PDFLib.PageSizes.A4[1], PDFLib.PageSizes.A4[0]]);
+        const image = await pdfDoc.embedPng(canvas.toDataURL('image/png'));
+        const size = image.scale(Math.min(page.getWidth() / image.width, page.getHeight() / image.height));
+        page.drawImage(image, {
+          x: (page.getWidth() - size.width) / 2,
+          y: (page.getHeight() - size.height) / 2,
+          width: size.width,
+          height: size.height
+        });
+        downloadPdf(await pdfDoc.save(), filename);
       }
 
       pdfBtnLabel.textContent = 'Downloaded!';

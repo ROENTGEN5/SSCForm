@@ -3,7 +3,20 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, decodePDFRawStream } from 'pdf-lib';
+
+async function assertCertificateFillsPage(bytes) {
+  const doc = await PDFDocument.load(bytes);
+  assert.equal(doc.getPageCount(), 1);
+  const page = doc.getPages()[0];
+  const streams = page.node.Contents();
+  const content = Array.from({ length: streams.size() }, (_, i) =>
+    Buffer.from(decodePDFRawStream(doc.context.lookup(streams.get(i))).decode()).toString()
+  ).join('\n');
+  const matrices = [...content.matchAll(/([\d.]+) 0 0 ([\d.]+) [\d.\-]+ [\d.\-]+ cm/g)];
+  assert.ok(matrices.some(m => Number(m[1]) >= page.getWidth() * 0.98 && Number(m[2]) >= page.getHeight() * 0.98),
+    'Certificate artwork should occupy at least 98% of the A4 landscape page in both dimensions');
+}
 
 test('build rejects missing configuration and secret keys', () => {
   for (const config of [{ SUPABASE_URL: '', SUPABASE_PUBLISHABLE_KEY: '' }, { SUPABASE_URL: 'https://test.supabase.co', SUPABASE_PUBLISHABLE_KEY: 'sb_secret_forbidden' }]) {
@@ -82,6 +95,7 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
     const pdf = await readFile(await download.path());
     assert.equal(pdf.subarray(0, 4).toString(), '%PDF');
     assert.equal((await PDFDocument.load(pdf)).getPageCount(), 1);
+    await assertCertificateFillsPage(pdf);
     await page.evaluate(() => scrollTo(0, 0));
     await page.screenshot({ path: 'test-results/mobile-certificate.png', fullPage: true });
     await page.locator('#btn-submit-another').click();
@@ -100,6 +114,37 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
     await page.locator('#builder-form-title').fill('SSC Event Evaluation');
     await page.locator('#btn-builder-save-all').click();
     await page.waitForFunction(() => document.getElementById('nav-form-title').textContent === 'SSC Event Evaluation');
+    await page.locator('[data-tab="tab-certificate"]').click();
+    await page.locator('#btn-mode-custom').click();
+    const template = await page.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1160; canvas.height = 820;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff2ce'; ctx.fillRect(0, 0, 1160, 820);
+      ctx.strokeStyle = '#7c2020'; ctx.lineWidth = 20; ctx.strokeRect(10, 10, 1140, 800);
+      ctx.fillStyle = '#7c2020'; ctx.font = 'bold 54px Georgia'; ctx.textAlign = 'center';
+      ctx.fillText('CERTIFICATE OF PARTICIPATION', 580, 180);
+      return canvas.toDataURL('image/png').split(',')[1];
+    });
+    await page.locator('#input-cert-template-file').setInputFiles({
+      name: 'certificate.png', mimeType: 'image/png', buffer: Buffer.from(template, 'base64')
+    });
+    await page.waitForFunction(() => document.getElementById('cert-file-name-text').textContent === 'certificate.png');
+    await page.locator('#btn-save-custom-template').click();
+    await page.locator('#btn-toggle-preview').click();
+    await page.locator('#input-p-name').fill('Maria Dela Cruz');
+    await page.locator('#input-p-email').fill('maria@example.com');
+    await page.locator('.gf-rating-scale').nth(0).locator('button').last().click();
+    await page.locator('.gf-options-list').first().locator('.gf-option-row').first().click();
+    await page.locator('.gf-rating-scale').nth(1).locator('button').last().click();
+    await page.locator('#btn-submit-form').click();
+    await page.locator('#view-certificate.active').waitFor();
+    const imageDownloadPromise = page.waitForEvent('download', { timeout: 60000 });
+    await page.locator('#btn-download-pdf').click();
+    const imageDownload = await imageDownloadPromise;
+    assert.equal(await imageDownload.failure(), null);
+    await imageDownload.saveAs('test-results/custom-image-certificate.pdf');
+    await assertCertificateFillsPage(await readFile(await imageDownload.path()));
     assert.deepEqual(errors, []);
   } finally { await browser?.close(); server.kill(); }
 });
