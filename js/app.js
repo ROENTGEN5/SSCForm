@@ -747,13 +747,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
       certificatePrintArea.style.display = 'none';
       certificateCustomArea.style.display = 'block';
 
-      // Set custom background if image
-      if (certSettings.template_type === 'custom_image') {
-        certificateCustomArea.style.backgroundImage = `url(${certSettings.template_data})`;
-      } else {
-        // PDF Template indicator background
-        certificateCustomArea.style.backgroundImage = `linear-gradient(135deg, #1e293b, #0f172a)`;
-      }
+      updateTemplateBackground(certificateCustomArea);
 
       // Apply overlay styling
       customCertNameDisplay.textContent = fullName;
@@ -761,6 +755,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
       customCertNameDisplay.style.fontSize = `${certSettings.name_font_size || 32}px`;
       customCertNameDisplay.style.color = certSettings.name_color || '#1e3a8a';
       applyFontFamily(customCertNameDisplay, certSettings.name_font_family);
+      scalePdfPreviewName(certificateCustomArea);
 
     } else {
       certificatePrintArea.style.display = 'flex';
@@ -1631,19 +1626,56 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
     updateLiveCustomPreview();
   });
 
-  function updateLiveCustomPreview() {
-    if (certSettings.template_type === 'custom_image' && certSettings.template_data) {
-      adminCustomCertPreview.style.backgroundImage = `url(${certSettings.template_data})`;
-    } else if (certSettings.template_type === 'custom_pdf') {
-      adminCustomCertPreview.style.backgroundImage = `linear-gradient(135deg, #1e293b, #0f172a)`;
-    } else {
-      adminCustomCertPreview.style.backgroundImage = 'none';
+  const templateBackgrounds = new WeakMap();
+  function updateTemplateBackground(element) {
+    const { template_type: type, template_data: source } = certSettings;
+    const previous = templateBackgrounds.get(element);
+    if (previous?.type === type && previous?.source === source) return;
+    const request = { type, source };
+    templateBackgrounds.set(element, request);
+    element.style.backgroundImage = 'none';
+    element.style.aspectRatio = '1.414 / 1';
+    delete element.dataset.previewMessage;
+    element.dataset.previewState = 'empty';
+    if (type === 'custom_image' && source) {
+      element.style.backgroundImage = `url(${source})`;
+      element.dataset.previewState = 'ready';
+    } else if (type === 'custom_pdf' && source) {
+      element.dataset.previewState = 'loading';
+      element.dataset.previewMessage = 'Loading PDF preview...';
+      import('./pdf-preview.js').then(module => module.pdfPreview(source)).then(preview => {
+        if (templateBackgrounds.get(element) !== request) return;
+        element.style.backgroundImage = `url(${preview.image})`;
+        element.style.aspectRatio = `${preview.width} / ${preview.height}`;
+        request.width = preview.width;
+        scalePdfPreviewName(element);
+        element.dataset.previewState = 'ready';
+        delete element.dataset.previewMessage;
+      }).catch(() => {
+        if (templateBackgrounds.get(element) !== request) return;
+        element.dataset.previewState = 'error';
+        element.dataset.previewMessage = 'Could not preview this PDF. Use an unencrypted PDF and upload it again.';
+        // Allow a fresh upload of the same file to retry the preview.
+        templateBackgrounds.delete(element);
+      });
     }
+  }
+
+  function scalePdfPreviewName(element) {
+    const background = templateBackgrounds.get(element);
+    if (background?.type !== 'custom_pdf' || !background.width) return;
+    const overlay = element.querySelector('.custom-cert-name-overlay');
+    if (overlay) overlay.style.fontSize = `${(certSettings.name_font_size || 32) * 100 / background.width}cqw`;
+  }
+
+  function updateLiveCustomPreview() {
+    updateTemplateBackground(adminCustomCertPreview);
 
     adminNameOverlayPreview.style.top = `${certSettings.name_y_percent || 52}%`;
     adminNameOverlayPreview.style.fontSize = `${certSettings.name_font_size || 32}px`;
     adminNameOverlayPreview.style.color = certSettings.name_color || '#1e3a8a';
     applyFontFamily(adminNameOverlayPreview, certSettings.name_font_family);
+    scalePdfPreviewName(adminCustomCertPreview);
   }
 
   // Save Custom Template Settings

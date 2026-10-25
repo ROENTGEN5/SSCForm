@@ -15,6 +15,7 @@
     "html2pdf.js": "^0.14.0",
     "jspdf": "4.2.1",
     "pdf-lib": "1.17.1",
+    "pdfjs-dist": "6.4.299",
     "svg2pdf.js": "2.8.1"
   },
   "devDependencies": {

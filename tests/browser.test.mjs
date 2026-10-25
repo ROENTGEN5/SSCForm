@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { PDFDocument, PDFName, decodePDFRawStream } from 'pdf-lib';
+import { PDFDocument, PDFName, decodePDFRawStream, rgb } from 'pdf-lib';
 
 async function assertCertificateFillsPage(bytes) {
   const doc = await PDFDocument.load(bytes);
@@ -204,6 +204,8 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
       </svg>`)
     });
     await page.waitForFunction(() => document.getElementById('cert-file-name-text').textContent === 'vector-certificate.svg.pdf');
+    await page.waitForFunction(() => document.getElementById('admin-custom-cert-preview').dataset.previewState === 'ready');
+    assert.match(await page.locator('#admin-custom-cert-preview').evaluate(element => element.style.backgroundImage), /data:image\/png/);
     await page.locator('#btn-save-custom-template').click();
     await page.locator('#btn-toggle-preview').click();
     await page.locator('#input-p-name').fill('SVG Test Participant');
@@ -212,6 +214,7 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
     await page.locator('.gf-options-list').first().locator('.gf-option-row').first().click();
     await page.locator('#btn-submit-form').click();
     await page.locator('#view-certificate.active').waitFor();
+    await page.waitForFunction(() => document.getElementById('certificate-custom-area').dataset.previewState === 'ready');
     const vectorDownloadPromise = page.waitForEvent('download', { timeout: 60000 });
     await page.locator('#btn-download-pdf').click();
     const vectorDownload = await vectorDownloadPromise;
@@ -224,6 +227,32 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
     assert.equal(vectorDoc.context.enumerateIndirectObjects().some(([, object]) =>
       object.dict?.get(PDFName.of('Subtype'))?.toString() === '/Image'), false,
     'A vector-only SVG template must remain vector artwork in the downloaded PDF');
+    await page.locator('#link-footer-admin').click();
+    await page.locator('#input-cert-template-file').setInputFiles({
+      name: 'broken.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a PDF')
+    });
+    await page.waitForFunction(() => document.getElementById('admin-custom-cert-preview').dataset.previewState === 'error');
+    assert.match(await page.locator('#admin-custom-cert-preview').getAttribute('data-preview-message'), /Could not preview/);
+    const previewDoc = await PDFDocument.create();
+    const previewPage = previewDoc.addPage([842, 595]);
+    previewPage.drawRectangle({ x: 0, y: 0, width: 842, height: 595, color: rgb(1, 0.98, 0.9) });
+    previewPage.drawText('PDF TEMPLATE PREVIEW', { x: 210, y: 480, size: 28, color: rgb(0.44, 0.12, 0.12) });
+    await page.locator('#input-cert-template-file').setInputFiles({
+      name: 'preview.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await previewDoc.save())
+    });
+    await page.waitForFunction(() => document.getElementById('admin-custom-cert-preview').dataset.previewState === 'ready');
+    const pixel = await page.locator('#admin-custom-cert-preview').evaluate(async element => {
+      const image = new Image();
+      image.src = element.style.backgroundImage.slice(5, -2);
+      await image.decode();
+      const canvas = document.createElement('canvas'); canvas.width = 1; canvas.height = 1;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(image, 0, 0);
+      return Array.from(ctx.getImageData(0, 0, 1, 1).data);
+    });
+    assert.ok(pixel[0] > 245 && pixel[1] > 240 && pixel[2] > 215, 'Preview must contain the uploaded PDF artwork');
+    await page.locator('#slider-name-y').fill('60');
+    assert.equal(await page.locator('#admin-custom-cert-preview').getAttribute('data-preview-state'), 'ready');
+    await page.locator('#admin-custom-cert-preview').screenshot({ path: 'test-results/admin-pdf-preview.png' });
     assert.deepEqual(errors, []);
   } finally { await browser?.close(); server.kill(); }
 });

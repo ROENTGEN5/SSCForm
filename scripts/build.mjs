@@ -22,12 +22,16 @@ await mkdir('dist/js', { recursive: true });
 await build({ entryPoints: ['js/app.js'], outdir: 'dist/js', bundle: true, splitting: true, format: 'esm', minify: true, target: ['es2022'], define: {
   __APP_CONFIG__: JSON.stringify({ url: demo ? '' : url, key: demo ? '' : key, demo })
 } });
+await cp('node_modules/pdfjs-dist/build/pdf.worker.mjs', 'dist/js/pdf.worker.js');
+for (const [source, target] of [['standard_fonts', 'pdf-fonts'], ['cmaps', 'pdf-cmaps'], ['wasm', 'pdf-wasm']]) {
+  await cp(`node_modules/pdfjs-dist/${source}`, `dist/${target}`, { recursive: true });
+}
 for (const path of ['index.html', 'css', 'assets', 'sample-survey-questions.json']) await cp(path, `dist/${path}`, { recursive: true });
 await writeFile('dist/robots.txt', 'User-agent: *\nDisallow: /?admin=1\n');
 console.log(demo ? 'Built explicit demo: responses are not saved.' : 'Production build ready in dist/.');
 if (process.argv.includes('--serve')) {
   const { headers } = JSON.parse(await readFile('vercel.json', 'utf8'));
-  const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.json': 'application/json' };
+  const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.json': 'application/json', '.wasm': 'application/wasm' };
   createServer(async (req, res) => {
     for (const header of headers[0].headers) res.setHeader(header.key, header.value);
     const path = resolve('dist', '.' + decodeURIComponent(new URL(req.url, 'http://localhost').pathname === '/' ? '/index.html' : new URL(req.url, 'http://localhost').pathname));

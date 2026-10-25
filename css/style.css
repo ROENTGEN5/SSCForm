@@ -833,6 +833,7 @@ body {
 
 /* Custom Uploaded Template Frame (Live Preview) */
 .certificate-custom-frame {
+  container-type: inline-size;
   width: 100%;
   max-width: 580px;
   aspect-ratio: 1.414 / 1;
@@ -847,6 +848,19 @@ body {
 }
 
 /* Custom Text Overlay for Uploaded Template */
+.certificate-custom-frame[data-preview-message]::after {
+  content: attr(data-preview-message);
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  padding: 8px;
+  background: #1e293b;
+  color: #ffffff;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
 .custom-cert-name-overlay {
   position: absolute;
   left: 0;
