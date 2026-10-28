@@ -4,6 +4,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { PDFDocument, PDFName, decodePDFRawStream, rgb } from 'pdf-lib';
+import jsQR from 'jsqr';
 
 async function assertCertificateFillsPage(bytes) {
   const doc = await PDFDocument.load(bytes);
@@ -290,6 +291,30 @@ test('admin creates and switches independent program forms with separate certifi
     await page.screenshot({ path: 'test-results/program-manager-mobile.png', fullPage: true });
     await page.locator('#btn-open-send-modal').click();
     assert.equal(await page.locator('#share-link-input').inputValue(), 'http://127.0.0.1:3002/?form=2');
+    async function decodeShareQr() {
+      await page.locator('#share-qr-image').waitFor({ state: 'visible' });
+      const pixels = await page.locator('#share-qr-image').evaluate(async image => {
+        await image.decode();
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(image, 0, 0, 480, 480);
+        return Array.from(ctx.getImageData(0, 0, 480, 480).data);
+      });
+      return jsQR(new Uint8ClampedArray(pixels), 480, 480)?.data;
+    }
+    assert.equal(await decodeShareQr(), 'http://127.0.0.1:3002/?form=2');
+    assert.match(await page.locator('#share-qr-status').textContent(), /Local preview link/);
+    assert.equal(await page.locator('#share-qr-image').evaluate(image => image.naturalWidth), 1200);
+    const qrDownloaded = page.waitForEvent('download');
+    await page.locator('#btn-download-qr').click();
+    const qrDownload = await qrDownloaded;
+    assert.equal(qrDownload.suggestedFilename(), 'SSC_Form_2_QR.png');
+    const qrBytes = await readFile(await qrDownload.path());
+    assert.equal(qrBytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    const qrSource = await page.locator('#share-qr-image').getAttribute('src');
+    assert.deepEqual(qrBytes, Buffer.from(qrSource.split(',')[1], 'base64'));
+    await page.screenshot({ path: 'test-results/share-qr-mobile.png', fullPage: true });
     await page.locator('#btn-close-send-modal').click();
     await page.locator('[data-tab="tab-certificate"]').click();
     await page.locator('#setting-cert-title').fill('October 29 Certificate');
@@ -300,6 +325,10 @@ test('admin creates and switches independent program forms with separate certifi
     assert.equal(await page.locator('#responses-counter').textContent(), '1');
     assert.equal(await page.locator('#builder-questions-list .gf-card-builder').count(), 4);
     assert.equal(await page.locator('#setting-cert-title').inputValue(), 'Certificate of Completion');
+    await page.locator('#btn-open-send-modal').click();
+    assert.equal(await decodeShareQr(), 'http://127.0.0.1:3002/?form=1');
+    assert.equal(await page.locator('#btn-download-qr').getAttribute('download'), 'SSC_Form_1_QR.png');
+    await page.locator('#btn-close-send-modal').click();
     await page.locator('#program-select').selectOption('2');
     assert.equal(await page.locator('#setting-cert-title').inputValue(), 'October 29 Certificate');
     assert.equal(await page.locator('#responses-counter').textContent(), '0');

@@ -1931,11 +1931,50 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
   // ---------------------------------------------------------------------------
   // 13. Send Form / Share Link Modal
   // ---------------------------------------------------------------------------
+  let qrGeneration = 0;
+  async function generateShareQr(link, formId) {
+    const generation = ++qrGeneration;
+    const image = document.getElementById('share-qr-image');
+    const download = document.getElementById('btn-download-qr');
+    const status = document.getElementById('share-qr-status');
+    image.hidden = true;
+    image.removeAttribute('src');
+    download.hidden = true;
+    download.removeAttribute('href');
+    document.getElementById('share-qr-program').textContent = formSettings.form_title;
+    status.textContent = 'Generating QR code…';
+    try {
+      const { default: QRCode } = await import('qrcode');
+      const dataUrl = await QRCode.toDataURL(link, {
+        width: 1200, margin: 4, errorCorrectionLevel: 'M',
+        color: { dark: '#000000', light: '#ffffff' }
+      });
+      if (generation !== qrGeneration) return;
+      image.alt = 'QR code for ' + formSettings.form_title;
+      image.src = dataUrl;
+      image.hidden = false;
+      download.href = dataUrl;
+      download.download = 'SSC_Form_' + formId + '_QR.png';
+      download.hidden = false;
+      const local = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+      status.textContent = local
+        ? 'Local preview link: use your deployed website to create a QR code participants can open on their phones.'
+        : isDemoMode
+          ? 'Demo form: responses are temporary. Generate the final QR code from your live website.'
+          : 'Scan with a phone camera, or download the QR code for your poster or slides.';
+    } catch (error) {
+      if (generation !== qrGeneration) return;
+      console.error('QR generation failed:', error);
+      status.textContent = 'Could not generate the QR code. Close and reopen Send to retry, or copy the link above.';
+    }
+  }
+
   btnOpenSendModal.addEventListener('click', () => {
     const cleanUrl = window.location.origin + window.location.pathname;
     shareLinkInput.value = cleanUrl + '?form=' + activeFormId;
     copyBtnText.textContent = 'Copy';
     modalSendForm.classList.add('open');
+    generateShareQr(shareLinkInput.value, activeFormId);
   });
 
   btnCloseSendModal.addEventListener('click', () => modalSendForm.classList.remove('open'));

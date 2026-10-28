@@ -105,3 +105,10 @@ Open `?admin=1`, then use **Program forms → New program title → Create separ
 The existing program remains form 1, with its responses and certificate template preserved. Old participant links without a `form` parameter still load form 1. The same email can submit to different programs. All council admins can manage all programs. Demo programs and changes disappear on reload.
 
 See [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) for the October 29 rollout checklist and prioritized improvements.
+
+
+### Share a program by QR code
+
+In the admin portal, select the correct program and click **Send**. The dialog generates a QR code for that program’s participant link. Choose **Download QR code (PNG)** to save a 1200-pixel image for posters or slides. Codes use a white background and include a clear border for scanning; keep that border when placing the image. Generation runs locally in the browser.
+
+Generate the final code from your deployed website. A QR code created on localhost points to a local preview that other participants’ phones cannot access. No database migration is needed for the QR feature.

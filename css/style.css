@@ -1109,3 +1109,9 @@ body {
 .program-manager label { display: block; margin: 14px 0 8px; }
 .program-manager select, .program-manager input { width: 100%; box-sizing: border-box; }
 .program-create button { margin-top: 12px; }
+
+.share-qr { text-align: center; margin: 20px 0; }
+.share-qr h4 { margin: 0 0 8px; }
+.share-qr p { color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 12px; overflow-wrap: anywhere; }
+.share-qr img { display: block; width: 240px; max-width: 100%; height: auto; margin: 12px auto; background: #fff; }
+.share-qr [hidden] { display: none; }

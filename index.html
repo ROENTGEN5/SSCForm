@@ -542,7 +542,15 @@
         <input type="text" id="share-link-input" class="gf-link-input" readonly>
       </div>
 
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
+      <section class="share-qr" aria-labelledby="share-qr-title">
+        <h4 id="share-qr-title">Scan to open the feedback form</h4>
+        <p id="share-qr-program"></p>
+        <img id="share-qr-image" width="240" height="240" alt="" hidden>
+        <p id="share-qr-status" role="status" aria-live="polite"></p>
+        <a id="btn-download-qr" class="btn btn-secondary" hidden>Download QR code (PNG)</a>
+      </section>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
         <button id="btn-open-form-link" class="btn btn-secondary" type="button">
           Open in New Tab
         </button>
