@@ -261,3 +261,66 @@ test('mobile form, logo, validation, duplicate prevention, admin builder and PDF
     assert.deepEqual(errors, []);
   } finally { await browser?.close(); server.kill(); }
 });
+
+
+test('admin creates and switches independent program forms with separate certificate and share links', async () => {
+  const server = spawn(process.execPath, ['scripts/build.mjs', '--demo', '--serve'], { env: { ...process.env, PORT: '3002' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  let browser;
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Preview timed out')), 30000);
+      server.stdout.on('data', data => { if (String(data).includes('Open http')) { clearTimeout(timeout); resolve(); } });
+      server.on('exit', code => { clearTimeout(timeout); reject(new Error('Preview exited: ' + code)); });
+    });
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('dialog', dialog => dialog.accept());
+    await page.goto('http://127.0.0.1:3002/?admin=1');
+    await page.waitForFunction(() => document.getElementById('program-select').options.length === 1);
+    assert.equal(await page.locator('#responses-counter').textContent(), '1');
+    await page.locator('#new-program-title').fill('October 29 Program');
+    await page.locator('#btn-create-program').click();
+    await page.waitForURL('**form=2**');
+    assert.equal(await page.locator('#builder-form-title').inputValue(), 'October 29 Program');
+    assert.equal(await page.locator('#responses-counter').textContent(), '0');
+    assert.equal(await page.locator('#builder-questions-list .gf-card-builder').count(), 2);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: 'test-results/program-manager-mobile.png', fullPage: true });
+    await page.locator('#btn-open-send-modal').click();
+    assert.equal(await page.locator('#share-link-input').inputValue(), 'http://127.0.0.1:3002/?form=2');
+    await page.locator('#btn-close-send-modal').click();
+    await page.locator('[data-tab="tab-certificate"]').click();
+    await page.locator('#setting-cert-title').fill('October 29 Certificate');
+    await page.locator('#form-cert-settings button[type="submit"]').click();
+    await page.locator('[data-tab="tab-builder"]').click();
+    await page.locator('#program-select').selectOption('1');
+    assert.equal(await page.locator('#builder-form-title').inputValue(), 'Participant Feedback & Summit Survey');
+    assert.equal(await page.locator('#responses-counter').textContent(), '1');
+    assert.equal(await page.locator('#builder-questions-list .gf-card-builder').count(), 4);
+    assert.equal(await page.locator('#setting-cert-title').inputValue(), 'Certificate of Completion');
+    await page.locator('#program-select').selectOption('2');
+    assert.equal(await page.locator('#setting-cert-title').inputValue(), 'October 29 Certificate');
+    assert.equal(await page.locator('#responses-counter').textContent(), '0');
+    await page.locator('#btn-toggle-preview').click();
+    await page.locator('#input-p-name').fill('Alex Rivera');
+    await page.locator('#input-p-email').fill('alex.rivera@example.com');
+    await page.locator('.gf-rating-scale button').last().click();
+    await page.locator('#btn-submit-form').click();
+    await page.locator('#view-certificate.active').waitFor();
+    assert.equal(await page.locator('#cert-recipient-name').textContent(), 'Alex Rivera');
+    assert.equal(await page.locator('#cert-title-display').textContent(), 'October 29 Certificate');
+    await page.locator('#link-footer-admin').click();
+    await page.locator('[data-tab="tab-responses"]').click();
+    const exported = page.waitForEvent('download');
+    await page.locator('#btn-export-csv').click();
+    const download = await exported;
+    const csv = await readFile(await download.path(), 'utf8');
+    assert.match(csv, /Alex Rivera/);
+    assert.doesNotMatch(csv, /system architecture/);
+    assert.match(download.suggestedFilename(), /Form_2/);
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: 'test-results/multiple-programs-mobile.png', fullPage: true });
+  } finally { await browser?.close(); server.kill(); }
+});

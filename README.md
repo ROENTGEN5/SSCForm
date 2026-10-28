@@ -85,7 +85,7 @@ Tests exercise database policies, input validation, transaction rollback, build 
 
 ## Current limits and useful next additions
 
-- The database holds one survey; when repeat submissions are disabled, each email can submit only once across that survey. Add separate events/forms before reusing it for multiple events.
+- Multiple program forms have separate questions, responses, certificates and share links. Each email can respond once per program unless repeat submissions are enabled for that program.
 - Public submission has no CAPTCHA or rate limit. Add a verified Turnstile challenge with a server/Edge Function before distributing the link widely. Browser-only checks cannot prevent automated submissions.
 - Certificate downloads happen after a successful submission. Lost certificates need council assistance; secure self-service recovery should verify ownership by email.
 - Custom PNG/JPEG/PDF/SVG templates are limited to 20 MB per upload and stored in settings as base64. SVG templates are converted on the admin's device into vector PDFs, then use the existing PDF certificate workflow; no database change is required for SVG support. Use a static, self-contained SVG with outlined text for custom fonts. Scripts, animation, HTML, filters, and external resources are rejected; for complex effects, upload the original PDF instead. Embedded photos retain their source resolution. The converted PDF must also fit within 20 MB. Larger saved templates increase participant page downloads; Supabase Storage is a better next step when large templates are used regularly.
@@ -94,3 +94,14 @@ Tests exercise database policies, input validation, transaction rollback, build 
 - The admin loads responses in batches for complete exports. For large events, add server-side search, analytics, and export jobs.
 
 Official references: [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys), [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Vercel build settings](https://vercel.com/docs/builds/configure-a-build), [Vercel environment variables](https://vercel.com/docs/environment-variables).
+
+
+## Multiple program forms
+
+For an existing project with the repeat-submission migration installed, run `migrations/20261028_multiple_forms.sql` before deploying this frontend. Older projects must run `migrations/20261025_allow_duplicate_responses.sql` first. Do not apply the older migration again after the multi-form upgrade. Back up the live database first. New installations can use the complete `supabase-schema.sql`.
+
+Open `?admin=1`, then use **Program forms → New program title → Create separate form**. The new program starts with fresh questions and a default certificate. Save its questions and certificate settings, and use **Send** to copy its separate `?form=ID` participant link. Responses and CSV exports apply to the selected program. Save changes before switching programs.
+
+The existing program remains form 1, with its responses and certificate template preserved. Old participant links without a `form` parameter still load form 1. The same email can submit to different programs. All council admins can manage all programs. Demo programs and changes disappear on reload.
+
+See [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) for the October 29 rollout checklist and prioritized improvements.

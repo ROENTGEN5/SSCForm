@@ -1102,3 +1102,10 @@ body {
     margin: 0;
   }
 }
+
+.program-manager { padding: 24px; margin-bottom: 24px; }
+.program-manager h2 { margin: 0 0 12px; }
+.program-manager p { color: var(--text-muted); margin: 12px 0; }
+.program-manager label { display: block; margin: 14px 0 8px; }
+.program-manager select, .program-manager input { width: 100%; box-sizing: border-box; }
+.program-create button { margin-top: 12px; }

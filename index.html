@@ -269,6 +269,18 @@
 
         <!-- Admin Dashboard Content (When Authenticated) -->
         <div id="admin-dashboard-box" style="display:none;">
+          <section class="gf-header-card program-manager" aria-labelledby="program-manager-title">
+            <h2 id="program-manager-title">Program forms</h2>
+            <p>Each program has separate questions, responses, certificate settings, and a participant link. Save changes before switching programs.</p>
+            <label for="program-select">Current program</label>
+            <select id="program-select" class="gf-select" aria-label="Current program"></select>
+            <form id="new-program-form" class="program-create">
+              <label for="new-program-title">New program title</label>
+              <input id="new-program-title" class="gf-input-card" maxlength="300" required placeholder="Enter the next program’s name">
+              <button id="btn-create-program" type="submit" class="btn btn-primary">Create separate form</button>
+            </form>
+            <p id="program-status" role="status" aria-live="polite"></p>
+          </section>
 
           <!-- TAB 1: FORM BUILDER (Google Forms Style) -->
           <div id="tab-builder" class="admin-tab-pane active">

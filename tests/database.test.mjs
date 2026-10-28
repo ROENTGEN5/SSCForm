@@ -88,3 +88,55 @@ test('migration upgrades an existing database without losing responses or duplic
     assert.equal((await db.query('select count(*)::int as total from survey_responses')).rows[0].total, 2);
   } finally { await db.close(); }
 });
+
+
+test('separate programs preserve legacy data and isolate validation, email policy, edits and certificates', async () => {
+  const db = new PGlite();
+  try {
+    await db.exec(`create role anon; create role authenticated; create schema auth;
+      create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
+      grant usage on schema auth to anon, authenticated;
+      grant execute on function auth.jwt() to anon, authenticated;`);
+    const schema = await readFile('supabase-schema.sql', 'utf8');
+    // Start from the previous release, with a real response and custom certificate.
+    await db.exec(schema.split('-- Multi-program upgrade.')[0]);
+    const oldQuestions = (await db.query('select * from survey_questions order by sort_order')).rows;
+    const oldAnswers = JSON.stringify(Object.fromEntries(oldQuestions.map(q => [q.question_text,
+      q.question_type === 'rating' ? '5' : q.question_type === 'choice' ? q.options[0] : 'Thanks'])));
+    await db.query("insert into survey_responses(full_name,email,answers) values ('Original Student','shared@example.com',$1)", [oldAnswers]);
+    await db.exec("update certificate_settings set title='Original certificate'");
+    const migration = await readFile('migrations/20261028_multiple_forms.sql', 'utf8');
+    await db.exec(migration);
+    await db.exec('set role anon');
+    await assert.rejects(db.query("select create_survey('Unauthorized')"), /permission denied/);
+    await db.exec('reset role; set role authenticated');
+    await assert.rejects(db.query("select create_survey('Unauthorized')"), /Administrator access required/);
+    await db.query("select set_config('request.jwt.claims', $1, false)", ['{"app_metadata":{"role":"admin"}}']);
+    const id = (await db.query("select create_survey('October 29 Program') as id")).rows[0].id;
+    assert.equal(id, 2);
+    const questions = (await db.query('select * from survey_questions where form_id=$1 order by sort_order', [id])).rows;
+    const answers = JSON.stringify({ [questions[0].question_text]: '5' });
+    await db.exec('reset role; set role anon');
+    await db.query("insert into survey_responses(form_id,full_name,email,answers) values ($1,'Returning Student','SHARED@example.com',$2)", [id, answers]);
+    await assert.rejects(db.query("insert into survey_responses(form_id,full_name,email,answers) values ($1,'Returning Student','shared@example.com',$2)", [id, answers]), e => e.code === '23505');
+    await assert.rejects(db.query("insert into survey_responses(form_id,full_name,email,answers) values ($1,'Wrong Form','wrong@example.com',$2)", [id, oldAnswers]), /form has changed/);
+    await assert.rejects(db.query("insert into survey_responses(form_id,full_name,email,answers) values (999,'Unknown','unknown@example.com','{}')"));
+    await assert.rejects(db.query('select * from survey_responses'), /permission denied/);
+    await db.exec('reset role; set role authenticated');
+    const changed = questions.map(q => ({ ...q, question_text: q.question_text + ' updated' }));
+    await db.query('select save_survey($1,$2,$3,$4)', ['New program title', 'Details', JSON.stringify(changed), id]);
+    await assert.rejects(db.query('select save_survey($1,$2,$3,$4)', ['Should rollback', '', JSON.stringify(oldQuestions), id]), /another form/);
+    await db.query("update certificate_settings set title='New certificate' where id=$1", [id]);
+    assert.equal((await db.query('select title from certificate_settings where id=1')).rows[0].title, 'Original certificate');
+    assert.deepEqual((await db.query('select * from survey_questions where form_id=1 order by sort_order')).rows.map(q => q.question_text), oldQuestions.map(q => q.question_text));
+    assert.equal((await db.query('select count(*)::int as n from survey_responses where form_id=1')).rows[0].n, 1);
+    assert.equal((await db.query('select count(*)::int as n from survey_responses where form_id=$1', [id])).rows[0].n, 1);
+    await db.exec('reset role');
+    await db.exec(migration);
+    await db.exec(schema);
+    assert.equal((await db.query('select count(*)::int as n from survey_responses')).rows[0].n, 2);
+    assert.equal((await db.query('select count(*)::int as n from response_email_registry')).rows[0].n, 2);
+    await db.query("select set_config('request.jwt.claims', '{}', false)");
+    await assert.rejects(db.query("select create_survey('No role')"), e => e.code === '42501');
+  } finally { await db.close(); }
+});

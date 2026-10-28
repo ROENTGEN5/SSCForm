@@ -24,7 +24,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
   let isDemoMode = false;
   let isAdminMode = false;
 
-  const demoStore = {
+  let demoStore = {
     formSettings: {
       id: 1,
       form_title: "Participant Feedback & Summit Survey",
@@ -96,6 +96,90 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
       name_font_family: "serif"
     }
   };
+
+  const requestedForm = new URLSearchParams(window.location.search).get('form');
+  let activeFormId = requestedForm === null ? 1 : (/^[1-9]\d*$/.test(requestedForm) && Number.isSafeInteger(Number(requestedForm)) ? Number(requestedForm) : -1);
+  const demoDefaults = structuredClone(demoStore);
+  const demoForms = new Map([[1, demoStore]]);
+  const programSelect = document.getElementById('program-select');
+  const programStatus = document.getElementById('program-status');
+
+  async function refreshPrograms() {
+    let forms;
+    if (isDemoMode) {
+      forms = [...demoForms].map(([id, store]) => ({ id, form_title: store.formSettings.form_title }));
+    } else {
+      const { data, error } = await supabaseClient.from('form_settings').select('id,form_title').order('id');
+      if (error) throw error;
+      forms = data;
+    }
+    programSelect.replaceChildren(...forms.map(form => {
+      const option = document.createElement('option');
+      option.value = form.id;
+      option.textContent = form.form_title + ' (Form ' + form.id + ')';
+      return option;
+    }));
+    programSelect.value = String(activeFormId);
+  }
+
+  async function openProgram(id) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('form', id);
+    url.searchParams.set('admin', '1');
+    if (!isDemoMode) { window.location.assign(url.href); return; }
+    activeFormId = id;
+    demoStore = demoForms.get(id);
+    history.replaceState(null, '', url);
+    participantAnswers = {};
+    participantSurveyForm.reset();
+    participantAlertBox.textContent = '';
+    await loadAllData();
+    await refreshPrograms();
+  }
+
+  programSelect.addEventListener('change', async () => {
+    const id = Number(programSelect.value);
+    if (!confirm('Open this program? Save any question and certificate changes first. Unsaved changes will be discarded.')) {
+      programSelect.value = String(activeFormId);
+      return;
+    }
+    await openProgram(id);
+  });
+
+  document.getElementById('new-program-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const titleInput = document.getElementById('new-program-title');
+    const title = titleInput.value.trim();
+    if (!title) return;
+    if (!confirm('Create and open a separate program? Save any current changes first. Existing responses will be kept.')) return;
+    const button = document.getElementById('btn-create-program');
+    button.disabled = true;
+    programStatus.textContent = 'Creating program…';
+    try {
+      let id;
+      if (isDemoMode) {
+        id = Math.max(...demoForms.keys()) + 1;
+        const store = structuredClone(demoDefaults);
+        store.formSettings = { ...store.formSettings, id, form_title: title, form_description: 'Please share your feedback about this program.' };
+        store.certificateSettings.id = id;
+        store.responses = [];
+        store.questions = [
+          { id: crypto.randomUUID(), question_text: 'How would you rate the overall program?', question_type: 'rating', options: [], is_required: true, sort_order: 1 },
+          { id: crypto.randomUUID(), question_text: 'What can we improve for future programs?', question_type: 'paragraph', options: [], is_required: false, sort_order: 2 }
+        ];
+        demoForms.set(id, store);
+      } else {
+        const { data, error } = await supabaseClient.rpc('create_survey', { p_title: title });
+        if (error) throw error;
+        id = data;
+      }
+      titleInput.value = '';
+      await openProgram(id);
+      programStatus.textContent = 'Separate program created. Customize its questions and certificate, then use Send for its link.';
+    } catch (error) {
+      programStatus.textContent = 'Could not create program. Apply the multi-form database migration if needed. ' + error.message;
+    } finally { button.disabled = false; }
+  });
 
   // State
   let formSettings = { ...demoStore.formSettings };
@@ -297,6 +381,11 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
     dataReady = false;
     btnSubmitForm.disabled = true;
     if (isDemoMode) {
+      if (!demoForms.has(activeFormId)) {
+        participantAlertBox.textContent = 'Unable to load this form. Check the program link.';
+        return;
+      }
+      demoStore = demoForms.get(activeFormId);
       formSettings = { ...demoStore.formSettings };
       currentQuestions = [...demoStore.questions].sort((a, b) => a.sort_order - b.sort_order);
       certSettings = { ...demoStore.certificateSettings };
@@ -313,9 +402,9 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
     try {
       if (!supabaseClient) throw new Error('The database connection is not configured.');
       const [formRes, questionsRes, certRes] = await Promise.all([
-        supabaseClient.from('form_settings').select('*').eq('id', 1).maybeSingle(),
-        supabaseClient.from('survey_questions').select('*').order('sort_order', { ascending: true }),
-        supabaseClient.from('certificate_settings').select('*').eq('id', 1).maybeSingle()
+        supabaseClient.from('form_settings').select('*').eq('id', activeFormId).maybeSingle(),
+        supabaseClient.from('survey_questions').select('*').eq('form_id', activeFormId).order('sort_order', { ascending: true }),
+        supabaseClient.from('certificate_settings').select('*').eq('id', activeFormId).maybeSingle()
       ]);
       for (const result of [formRes, questionsRes, certRes]) if (result.error) throw result.error;
       if (!formRes.data || !certRes.data) throw new Error('Database setup is incomplete.');
@@ -650,6 +739,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
     }
 
     const payload = {
+      form_id: activeFormId,
       full_name: fullName,
       email: email,
       answers: answersMap
@@ -965,7 +1055,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
     // Page through the API limit so counts and CSV exports include all responses.
     const rows = [];
     for (let start = 0; ; start += 1000) {
-      const { data, error } = await supabaseClient.from('survey_responses').select('*')
+      const { data, error } = await supabaseClient.from('survey_responses').select('*').eq('form_id', activeFormId)
         .order('created_at', { ascending: false }).order('id').range(start, start + 999);
       if (error) throw error;
       rows.push(...data);
@@ -978,6 +1068,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
     if (isDemoMode) {
       adminAuthBox.style.display = 'none';
       adminDashboardBox.style.display = 'block';
+      await refreshPrograms();
       renderBuilderQuestions();
       renderAdminResponses();
       return;
@@ -990,6 +1081,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
       if (session?.user?.app_metadata?.role === 'admin') {
         currentUser = session.user;
         await loadAdminResponses();
+        await refreshPrograms();
         adminAuthBox.style.display = 'none';
         adminDashboardBox.style.display = 'block';
         renderBuilderQuestions();
@@ -1030,6 +1122,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
       }
       currentUser = data.user;
       await loadAdminResponses();
+      await refreshPrograms();
       adminAuthBox.style.display = 'none';
       adminDashboardBox.style.display = 'block';
       showToast('Signed in successfully');
@@ -1236,7 +1329,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
       } else {
         const { data, error } = await supabaseClient.from('form_settings')
           .update({ allow_duplicate_responses: allowDuplicates, updated_at: new Date().toISOString() })
-          .eq('id', 1).select('allow_duplicate_responses').single();
+          .eq('id', activeFormId).select('allow_duplicate_responses').single();
         if (error) throw error;
         if (data.allow_duplicate_responses !== allowDuplicates) throw new Error('The response setting was not saved.');
       }
@@ -1295,6 +1388,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
           id: /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(q.id) ? q.id : crypto.randomUUID()
         }));
         const { error } = await supabaseClient.rpc('save_survey', {
+          p_form_id: activeFormId,
           p_title: formSettings.form_title,
           p_description: formSettings.form_description,
           p_questions: rowsToSave
@@ -1306,6 +1400,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
 
       applyFormAndCertSettings();
       renderParticipantQuestions();
+      await refreshPrograms();
       showToast('Form questions saved successfully');
 
     } catch (err) {
@@ -1681,7 +1776,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
   // Save Custom Template Settings
   btnSaveCustomTemplate.addEventListener('click', async () => {
     const updated = {
-      id: 1,
+      id: activeFormId,
       template_type: certSettings.template_type,
       template_data: certSettings.template_data || '',
       template_filename: certSettings.template_filename || '',
@@ -1716,7 +1811,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
   formCertSettings.addEventListener('submit', async (e) => {
     e.preventDefault();
     const updated = {
-      id: 1,
+      id: activeFormId,
       title: settingCertTitle.value.trim(),
       issuer: settingCertIssuer.value.trim(),
       body: settingCertBody.value.trim(),
@@ -1825,7 +1920,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `SSC_Form_Responses_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `SSC_Form_${activeFormId}_Responses_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1838,7 +1933,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
   // ---------------------------------------------------------------------------
   btnOpenSendModal.addEventListener('click', () => {
     const cleanUrl = window.location.origin + window.location.pathname;
-    shareLinkInput.value = cleanUrl;
+    shareLinkInput.value = cleanUrl + '?form=' + activeFormId;
     copyBtnText.textContent = 'Copy';
     modalSendForm.classList.add('open');
   });
