@@ -277,7 +277,8 @@ test('admin creates and switches independent program forms with separate certifi
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
-    page.on('dialog', dialog => dialog.accept());
+    const acceptDialog = dialog => dialog.accept();
+    page.on('dialog', acceptDialog);
     await page.goto('http://127.0.0.1:3002/?admin=1');
     await page.waitForFunction(() => document.getElementById('program-select').options.length === 1);
     assert.equal(await page.locator('#responses-counter').textContent(), '1');
@@ -349,7 +350,29 @@ test('admin creates and switches independent program forms with separate certifi
     assert.match(csv, /Alex Rivera/);
     assert.doesNotMatch(csv, /system architecture/);
     assert.match(download.suggestedFilename(), /Form_2/);
-    assert.deepEqual(errors, []);
     await page.screenshot({ path: 'test-results/multiple-programs-mobile.png', fullPage: true });
+
+    const response = page.locator('#admin-responses-container details').filter({ hasText: 'Alex Rivera' });
+    await response.locator('summary').press('Enter');
+    const deleteResponse = response.getByRole('button', { name: 'Delete response' });
+    page.off('dialog', acceptDialog);
+    const confirmation = page.waitForEvent('dialog');
+    page.once('dialog', dialog => dialog.dismiss());
+    await deleteResponse.click();
+    assert.match((await confirmation).message(), /Permanently delete.*Alex Rivera/);
+    assert.equal(await page.locator('#responses-counter').textContent(), '1');
+    page.on('dialog', acceptDialog);
+    await deleteResponse.click();
+    await page.getByText('No responses received yet.').waitFor();
+    assert.equal(await page.locator('#responses-counter').textContent(), '0');
+    assert.equal(await page.locator('#admin-response-badge').textContent(), '0');
+    const emptyExport = page.waitForEvent('dialog');
+    await page.locator('#btn-export-csv').click();
+    assert.match((await emptyExport).message(), /No responses available to export/);
+    await page.locator('#program-select').selectOption('1');
+    assert.equal(await page.locator('#responses-counter').textContent(), '1');
+    await page.locator('#program-select').selectOption('2');
+    assert.equal(await page.locator('#responses-counter').textContent(), '0');
+    assert.deepEqual(errors, []);
   } finally { await browser?.close(); server.kill(); }
 });

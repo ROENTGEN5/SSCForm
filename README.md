@@ -106,6 +106,12 @@ The existing program remains form 1, with its responses and certificate template
 
 See [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) for the October 29 rollout checklist and prioritized improvements.
 
+### Delete an individual response
+
+In the admin portal, open **Responses**, expand the participant’s response, and choose **Delete response**. Confirm the permanent deletion. The response disappears from the count and from future CSV exports. With repeat submissions disabled, an email that has already submitted is still blocked from submitting again.
+
+For an existing Supabase project, apply `migrations/20261119_admin_delete_responses.sql` after the multi-form migration and before deploying the updated frontend. New installations can use `supabase-schema.sql`.
+
 
 ### Share a program by QR code
 

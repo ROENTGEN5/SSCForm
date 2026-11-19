@@ -99,6 +99,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
 
   const requestedForm = new URLSearchParams(window.location.search).get('form');
   let activeFormId = requestedForm === null ? 1 : (/^[1-9]\d*$/.test(requestedForm) && Number.isSafeInteger(Number(requestedForm)) ? Number(requestedForm) : -1);
+  demoStore.responseEmails = new Set(demoStore.responses.map(response => response.email));
   const demoDefaults = structuredClone(demoStore);
   const demoForms = new Map([[1, demoStore]]);
   const programSelect = document.getElementById('program-select');
@@ -163,6 +164,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
         store.formSettings = { ...store.formSettings, id, form_title: title, form_description: 'Please share your feedback about this program.' };
         store.certificateSettings.id = id;
         store.responses = [];
+        store.responseEmails.clear();
         store.questions = [
           { id: crypto.randomUUID(), question_text: 'How would you rate the overall program?', question_type: 'rating', options: [], is_required: true, sort_order: 1 },
           { id: crypto.randomUUID(), question_text: 'What can we improve for future programs?', question_type: 'paragraph', options: [], is_required: false, sort_order: 2 }
@@ -188,6 +190,7 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
   let participantAnswers = {};
   let activeParticipant = { name: "", email: "" };
   let cachedResponses = [];
+  const pendingResponseDeletes = new Set();
   let currentUser = null;
   let dataReady = false;
   let submitting = false;
@@ -751,18 +754,18 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
 
     try {
       if (isDemoMode) {
-        const exists = demoStore.responses.some(r => r.email === email);
-        if (exists && !formSettings.allow_duplicate_responses) {
+        if (demoStore.responseEmails.has(email) && !formSettings.allow_duplicate_responses) {
           throw { code: '23505', message: 'duplicate key value violates unique constraint' };
         }
 
         const newRecord = {
-          id: 'demo-' + Date.now(),
+          id: crypto.randomUUID(),
           full_name: fullName,
           email: email,
           answers: answersMap,
           created_at: new Date().toISOString()
         };
+        demoStore.responseEmails.add(email);
         demoStore.responses.unshift(newRecord);
         cachedResponses.unshift(newRecord);
       } else {
@@ -1841,6 +1844,31 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
   // ---------------------------------------------------------------------------
   // 12. Admin Responses & CSV Export
   // ---------------------------------------------------------------------------
+  async function deleteAdminResponse(response, button) {
+    if (!confirm(`Permanently delete the response from ${response.full_name} (${response.email})?`)) return;
+
+    const formId = activeFormId;
+    pendingResponseDeletes.add(response.id);
+    setButtonLoading(button, true, 'Deleting…');
+    try {
+      if (isDemoMode) {
+        demoStore.responses = demoStore.responses.filter(row => row.id !== response.id);
+      } else {
+        const { error } = await supabaseClient.from('survey_responses').delete()
+          .eq('form_id', formId).eq('id', response.id).select('id').single();
+        if (error) throw error;
+      }
+      cachedResponses = cachedResponses.filter(row => row.id !== response.id);
+      showToast('Response deleted');
+    } catch (error) {
+      console.error('Response deletion failed:', error);
+      showToast('Could not confirm deletion. Refresh the page and check the response.');
+    } finally {
+      pendingResponseDeletes.delete(response.id);
+      renderAdminResponses();
+    }
+  }
+
   function renderAdminResponses() {
     responsesCounter.textContent = cachedResponses.length;
     adminResponseBadge.textContent = cachedResponses.length;
@@ -1852,20 +1880,16 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
 
     adminResponsesContainer.innerHTML = '';
     cachedResponses.forEach(r => {
-      const card = document.createElement('div');
+      const card = document.createElement('details');
       card.className = 'gf-question-card';
-      card.style.cursor = 'pointer';
 
       const time = new Date(r.created_at).toLocaleString();
       card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <div style="font-weight:700; font-size:1rem;">${escapeHtml(r.full_name)}</div>
-            <div style="font-size:0.8rem; color:var(--text-muted);">${escapeHtml(r.email)} &bull; ${time}</div>
-          </div>
-          <span style="font-size:1.1rem; color:var(--text-muted);">&blacktriangledown;</span>
-        </div>
-        <div class="resp-details" style="display:none; margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);"></div>
+        <summary class="response-summary">
+          <span style="font-weight:700;">${escapeHtml(r.full_name)}</span>
+          <span class="response-meta">${escapeHtml(r.email)} &bull; ${time}</span>
+        </summary>
+        <div class="resp-details" style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);"></div>
       `;
 
       const details = card.querySelector('.resp-details');
@@ -1879,10 +1903,13 @@ import { MAX_TEMPLATE_BYTES, MAX_TEMPLATE_SIZE_LABEL } from './template-limits.j
         details.appendChild(qaRow);
       }
 
-      card.addEventListener('click', () => {
-        details.style.display = details.style.display === 'none' ? 'block' : 'none';
-      });
-
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'btn btn-secondary response-delete';
+      const isDeleting = pendingResponseDeletes.has(r.id);
+      setButtonLoading(deleteButton, isDeleting, isDeleting ? 'Deleting…' : 'Delete response');
+      deleteButton.addEventListener('click', () => deleteAdminResponse(r, deleteButton));
+      details.appendChild(deleteButton);
       adminResponsesContainer.appendChild(card);
     });
   }

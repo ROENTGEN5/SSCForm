@@ -133,10 +133,28 @@ test('separate programs preserve legacy data and isolate validation, email polic
     assert.equal((await db.query('select count(*)::int as n from survey_responses where form_id=$1', [id])).rows[0].n, 1);
     await db.exec('reset role');
     await db.exec(migration);
-    await db.exec(schema);
     assert.equal((await db.query('select count(*)::int as n from survey_responses')).rows[0].n, 2);
     assert.equal((await db.query('select count(*)::int as n from response_email_registry')).rows[0].n, 2);
     await db.query("select set_config('request.jwt.claims', '{}', false)");
     await assert.rejects(db.query("select create_survey('No role')"), e => e.code === '42501');
+
+    const deleteMigration = await readFile('migrations/20261119_admin_delete_responses.sql', 'utf8');
+    await db.exec(deleteMigration);
+    const response = (await db.query('select id from survey_responses where form_id=$1', [id])).rows[0];
+    const deleteResponse = formId => db.query('delete from survey_responses where form_id=$1 and id=$2 returning id', [formId, response.id]);
+    await db.exec('set role anon');
+    await assert.rejects(deleteResponse(id), error => error.code === '42501');
+    await db.exec('reset role; set role authenticated');
+    await db.query("select set_config('request.jwt.claims', $1, false)", ['{"user_metadata":{"role":"admin"}}']);
+    assert.deepEqual((await deleteResponse(id)).rows, []);
+    await db.query("select set_config('request.jwt.claims', $1, false)", ['{"app_metadata":{"role":"admin"}}']);
+    assert.deepEqual((await deleteResponse(1)).rows, []);
+    assert.deepEqual((await deleteResponse(id)).rows, [response]);
+    assert.deepEqual((await deleteResponse(id)).rows, []);
+    assert.deepEqual((await db.query('select form_id from survey_responses')).rows, [{ form_id: 1 }]);
+    await db.exec('reset role');
+    assert.equal((await db.query('select count(*)::int as n from response_email_registry')).rows[0].n, 2);
+    await db.exec(schema);
+    assert.deepEqual((await db.query('select form_id from survey_responses')).rows, [{ form_id: 1 }]);
   } finally { await db.close(); }
 });
